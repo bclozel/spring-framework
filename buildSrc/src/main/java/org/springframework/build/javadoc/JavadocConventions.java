@@ -16,6 +16,10 @@
 
 package org.springframework.build.javadoc;
 
+import java.io.File;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -24,12 +28,14 @@ import org.gradle.api.Project;
 import org.gradle.api.tasks.javadoc.Javadoc;
 import org.gradle.external.javadoc.JavadocMemberLevel;
 import org.gradle.external.javadoc.StandardJavadocDocletOptions;
+import org.jetbrains.dokka.DokkaConfiguration;
+import org.jetbrains.dokka.gradle.DokkaTask;
 
 /**
- * {@link Plugin} that applies common conventions for Spring Framework Javadoc tasks.
+ * {@link Plugin} that applies common conventions for Spring Framework Javadoc and Dokka tasks.
  * <p>This can be used for both {@code "-javadoc.jar"} artifacts and the Javadocs
  * published on the official website.
- * 
+ *
  * @author Brian Clozel
  */
 public class JavadocConventions implements Plugin<Project> {
@@ -51,6 +57,13 @@ public class JavadocConventions implements Plugin<Project> {
 			"https://junit.org/junit5/docs/5.5.0/api/"
 	);
 
+	private static final List<String> KOTLIN_LINKS = Arrays.asList(
+			"https://projectreactor.io/docs/core/release/api/",
+			"https://www.reactive-streams.org/reactive-streams-1.0.1-javadoc/",
+			"https://kotlin.github.io/kotlinx.coroutines/kotlinx-coroutines-core/"
+	);
+
+
 	@Override
 	public void apply(Project project) {
 		project.getTasks().withType(Javadoc.class).forEach(t -> {
@@ -66,5 +79,30 @@ public class JavadocConventions implements Plugin<Project> {
 			options.setStylesheetFile(project.getRootProject().file("src/docs/api/stylesheet.css"));
 			options.setOverview(project.getRootProject().file("src/docs/api/overview.html").getPath());
 		});
+
+		project.getTasks().withType(DokkaTask.class).forEach(t -> {
+			List<DokkaConfiguration.ExternalDocumentationLink> links = new ArrayList<>();
+			KOTLIN_LINKS.forEach(l -> createDocLink(l, null));
+			DokkaConfiguration.ExternalDocumentationLink spring =
+					createDocLink("https://docs.spring.io/spring-framework/docs/" + project.getVersion() + "/javadoc-api/",
+							new File("file://" + project.getBuildDir(), "api/package-list").getPath());
+			links.add(spring);
+			t.setExternalDocumentationLinks(links);
+		});
+	}
+
+	private DokkaConfiguration.ExternalDocumentationLink createDocLink(String linkUrl, String listUrl) {
+		DokkaConfiguration.ExternalDocumentationLink.Builder builder =
+				new DokkaConfiguration.ExternalDocumentationLink.Builder();
+		try {
+			builder.setUrl(new URL(linkUrl));
+			if (listUrl != null) {
+				builder.setPackageListUrl(new URL(listUrl));
+			}
+		}
+		catch (MalformedURLException e) {
+			throw new RuntimeException(e);
+		}
+		return builder.build();
 	}
 }

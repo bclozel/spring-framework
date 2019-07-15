@@ -26,12 +26,17 @@ import org.gradle.api.file.FileCollection;
 import org.gradle.api.logging.LogLevel;
 import org.gradle.api.plugins.JavaBasePlugin;
 import org.gradle.api.plugins.JavaPluginConvention;
+import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.SourceSetOutput;
 import org.gradle.api.tasks.javadoc.Javadoc;
+import org.gradle.jvm.tasks.Jar;
+import org.jetbrains.dokka.gradle.DokkaPlugin;
+import org.jetbrains.dokka.gradle.DokkaTask;
 
 /**
  * {@link Plugin} that creates Javadoc tasks for creating {@code "-javadoc.jar"} artifacts
  * on each module and a main Javadoc task for publishing API docs on the official website.
+ * It also configures the main Dokka task for publishing kotlin API docs.
  *
  * @author Brian Clozel
  */
@@ -40,7 +45,11 @@ public class JavadocPlugin implements Plugin<Project> {
 	@Override
 	public void apply(Project project) {
 		if (project.getRootProject() == project) {
-			project.getPlugins().withType(JavadocPlugin.class, plugin -> createJavadocApiTask(project));
+			project.getPlugins()
+					.withType(JavadocPlugin.class, plugin -> createJavadocApiTask(project));
+			project.getPluginManager().apply(DokkaPlugin.class);
+			project.getPlugins()
+					.withType(DokkaPlugin.class, plugin -> configureDokkaApiTask(project));
 		}
 		else {
 			project.getPlugins().withType(JavadocPlugin.class, plugin -> configureJavadocModuleTask(project));
@@ -71,7 +80,7 @@ public class JavadocPlugin implements Plugin<Project> {
 		Javadoc javadoc = project.getTasks().create("api", Javadoc.class);
 		javadoc.setGroup(JavaBasePlugin.DOCUMENTATION_GROUP);
 		javadoc.setDescription("Generates aggregated Javadoc API documentation.");
-		javadoc.setDestinationDir(new File(project.getBuildDir(), "api"));
+		javadoc.setDestinationDir(new File(project.getBuildDir(), "docs/api"));
 		javadoc.setMaxMemory("1024m");
 
 		javadoc.setSource(project.getSubprojects().stream()

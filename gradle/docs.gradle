@@ -14,38 +14,6 @@
  *  limitations under the License.
  */
 
-dokka {
-	dependsOn {
-		tasks.getByName("api")
-	}
-	doFirst {
-		classpath = subprojects.collect { project -> project.jar.outputs.files.getFiles() }.flatten()
-		classpath += files(subprojects.collect { it.sourceSets.main.compileClasspath })
-
-	}
-	moduleName = "spring-framework"
-	outputFormat = "html"
-	outputDirectory = "$buildDir/docs/kdoc"
-
-	sourceDirs = files(subprojects.collect { project ->
-		def kotlinDirs = project.sourceSets.main.kotlin.srcDirs.collect()
-		kotlinDirs -= project.sourceSets.main.java.srcDirs
-	})
-	externalDocumentationLink {
-		url = new URL("https://docs.spring.io/spring-framework/docs/$version/javadoc-api/")
-		packageListUrl = new File(buildDir, "api/package-list").toURI().toURL()
-	}
-	externalDocumentationLink {
-		url = new URL("https://projectreactor.io/docs/core/release/api/")
-	}
-	externalDocumentationLink {
-		url = new URL("https://www.reactive-streams.org/reactive-streams-1.0.1-javadoc/")
-	}
-	externalDocumentationLink {
-		url = new URL("https://kotlin.github.io/kotlinx.coroutines/kotlinx-coroutines-core/")
-	}
-}
-
 configurations {
 	docs
 }
@@ -122,9 +90,9 @@ task docsZip(type: Zip, dependsOn: ['api', 'asciidoctor', 'dokka']) {
 		into "spring-framework-reference/pdf"
 	}
 
-	from (dokka) {
-		into "kdoc-api"
-	}
+	//from (dokka) {
+	//	into "kdoc-api"
+	//}
 }
 
 task schemaZip(type: Zip) {
