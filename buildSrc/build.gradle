@@ -29,5 +29,13 @@ gradlePlugin {
 			id = "org.springframework.build.test-sources"
 			implementationClass = "org.springframework.build.testsources.TestSourcesPlugin"
 		}
+		javadocConventions {
+			id = "org.springframework.build.javadoc-conventions"
+			implementationClass = "org.springframework.build.javadoc.JavadocConventions"
+		}
+		javadocPlugin {
+			id = "org.springframework.build.javadoc"
+			implementationClass = "org.springframework.build.javadoc.JavadocPlugin"
+		}
 	}
 }

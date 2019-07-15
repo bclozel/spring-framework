@@ -144,29 +144,10 @@ configure(allprojects) { project ->
 		checkstyle("io.spring.javaformat:spring-javaformat-checkstyle:0.0.7")
 	}
 
-	ext.javadocLinks = [
-		"https://docs.oracle.com/javase/8/docs/api/",
-		"https://docs.oracle.com/javaee/7/api/",
-		"https://docs.oracle.com/cd/E13222_01/wls/docs90/javadocs/",  // CommonJ
-		"https://www.ibm.com/support/knowledgecenter/SS7JFU_8.5.5/com.ibm.websphere.javadoc.doc/web/apidocs/",
-		"https://glassfish.java.net/nonav/docs/v3/api/",
-		"https://docs.jboss.org/jbossas/javadoc/4.0.5/connector/",
-		"https://docs.jboss.org/jbossas/javadoc/7.1.2.Final/",
-		"https://tiles.apache.org/tiles-request/apidocs/",
-		"https://tiles.apache.org/framework/apidocs/",
-		"https://www.eclipse.org/aspectj/doc/released/aspectj5rt-api/",
-		"https://www.ehcache.org/apidocs/2.10.4",
-		"https://www.quartz-scheduler.org/api/2.3.0/",
-		"https://fasterxml.github.io/jackson-core/javadoc/2.9/",
-		"https://fasterxml.github.io/jackson-databind/javadoc/2.9/",
-		"https://fasterxml.github.io/jackson-dataformat-xml/javadoc/2.9/",
-		"https://hc.apache.org/httpcomponents-client-ga/httpclient/apidocs/",
-		"https://junit.org/junit4/javadoc/4.12/",
-		"https://junit.org/junit5/docs/${junit5Version}/api/"
-	] as String[]
 }
 
 configure(subprojects.findAll { (it.name != "spring-core-coroutines") } ) { subproject ->
+	apply plugin: "org.springframework.build.javadoc"
 	apply from: "${gradleScriptDir}/publish-maven.gradle"
 
 	jar {
@@ -182,23 +163,6 @@ configure(subprojects.findAll { (it.name != "spring-core-coroutines") } ) { subp
 			into "META-INF"
 			expand(copyright: new Date().format("yyyy"), version: project.version)
 		}
-	}
-
-	javadoc {
-		description = "Generates project-level javadoc for use in -javadoc jar"
-
-		options.encoding = "UTF-8"
-		options.memberLevel = org.gradle.external.javadoc.JavadocMemberLevel.PROTECTED
-		options.author = true
-		options.header = project.name
-		options.use = true
-		options.links(project.ext.javadocLinks)
-		options.addStringOption("Xdoclint:none", "-quiet")
-
-		// Suppress warnings due to cross-module @see and @link references.
-		// Note that global 'api' task does display all warnings.
-		logging.captureStandardError LogLevel.INFO
-		logging.captureStandardOutput LogLevel.INFO  // suppress "## warnings" message
 	}
 
 	task sourcesJar(type: Jar, dependsOn: classes) {
@@ -225,6 +189,7 @@ configure(rootProject) {
 	apply plugin: "groovy"
 	apply plugin: "io.spring.nohttp"
 	apply plugin: 'org.springframework.build.apidiff'
+	apply plugin: "org.springframework.build.javadoc"
 	apply from: "${gradleScriptDir}/docs.gradle"
 
 	nohttp {
