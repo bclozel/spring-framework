@@ -57,7 +57,6 @@ ext {
 
 configure(allprojects) { project ->
 	group = "org.springframework"
-	version = qualifyVersionIfNecessary(version)
 
 	apply plugin: "java"
 	apply plugin: "kotlin"
@@ -237,21 +236,4 @@ configure(rootProject) {
 		archives distZip
 	}
 
-}
-
-/*
- * Support publication of artifacts versioned by topic branch.
- * CI builds supply `-P BRANCH_NAME=<TOPIC>` to gradle at build time.
- * If <TOPIC> starts with 'SPR-', change version
- *     from BUILD-SNAPSHOT => <TOPIC>-SNAPSHOT
- *     e.g. 3.2.1.BUILD-SNAPSHOT => 3.2.1.SPR-1234-SNAPSHOT
- */
-def qualifyVersionIfNecessary(version) {
-	if (rootProject.hasProperty("BRANCH_NAME")) {
-		def qualifier = rootProject.getProperty("BRANCH_NAME")
-		if (qualifier.startsWith("SPR-")) {
-			return version.replace("BUILD", qualifier)
-		}
-	}
-	return version
 }
