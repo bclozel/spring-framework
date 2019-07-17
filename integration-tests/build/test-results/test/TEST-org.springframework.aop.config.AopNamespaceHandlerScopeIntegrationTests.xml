@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="org.springframework.aop.config.AopNamespaceHandlerScopeIntegrationTests" tests="3" skipped="0" failures="0" errors="0" timestamp="2019-07-24T21:19:43" hostname="Brians-MacBook-Pro.local" time="0.518">
+  <properties/>
+  <testcase name="testSessionScoping" classname="org.springframework.aop.config.AopNamespaceHandlerScopeIntegrationTests" time="0.34"/>
+  <testcase name="testRequestScoping" classname="org.springframework.aop.config.AopNamespaceHandlerScopeIntegrationTests" time="0.085"/>
+  <testcase name="testSingletonScoping" classname="org.springframework.aop.config.AopNamespaceHandlerScopeIntegrationTests" time="0.092"/>
+  <system-out><![CDATA[23:19:43.148 [Test worker] DEBUG o.s.w.c.s.XmlWebApplicationContext - Refreshing Root WebApplicationContext
+23:19:43.180 [Test worker] DEBUG o.s.b.f.x.XmlBeanDefinitionReader - Loaded 10 bean definitions from class path resource [org/springframework/aop/config/AopNamespaceHandlerScopeIntegrationTests-context.xml]
+23:19:43.184 [Test worker] DEBUG o.s.b.f.s.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.aop.config.internalAutoProxyCreator'
+23:19:43.187 [Test worker] DEBUG o.s.u.c.s.UiApplicationContextUtils - Unable to locate ThemeSource with name 'themeSource': using default [org.springframework.ui.context.support.ResourceBundleThemeSource@3e634180]
+23:19:43.187 [Test worker] DEBUG o.s.b.f.s.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.aop.support.DefaultBeanFactoryPointcutAdvisor#0'
+23:19:43.209 [Test worker] DEBUG o.s.b.f.s.DefaultListableBeanFactory - Creating shared instance of singleton bean 'advice'
+23:19:43.210 [Test worker] DEBUG o.s.b.f.s.DefaultListableBeanFactory - Creating shared instance of singleton bean 'testBean'
+23:19:43.394 [Test worker] DEBUG o.s.b.f.s.DefaultListableBeanFactory - Creating shared instance of singleton bean 'scopedTarget.singletonScoped'
+23:19:43.434 [Test worker] DEBUG o.s.b.f.s.DefaultListableBeanFactory - Creating shared instance of singleton bean 'singletonScoped'
+23:19:43.458 [Test worker] DEBUG o.s.b.f.s.DefaultListableBeanFactory - Creating shared instance of singleton bean 'requestScoped'
+23:19:43.479 [Test worker] DEBUG o.s.b.f.s.DefaultListableBeanFactory - Creating shared instance of singleton bean 'sessionScoped'
+23:19:43.488 [Test worker] DEBUG o.s.w.c.s.XmlWebApplicationContext - Refreshing Root WebApplicationContext
+23:19:43.502 [Test worker] DEBUG o.s.b.f.x.XmlBeanDefinitionReader - Loaded 10 bean definitions from class path resource [org/springframework/aop/config/AopNamespaceHandlerScopeIntegrationTests-context.xml]
+23:19:43.502 [Test worker] DEBUG o.s.b.f.s.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.aop.config.internalAutoProxyCreator'
+23:19:43.503 [Test worker] DEBUG o.s.u.c.s.UiApplicationContextUtils - Unable to locate ThemeSource with name 'themeSource': using default [org.springframework.ui.context.support.ResourceBundleThemeSource@34b8671a]
+23:19:43.503 [Test worker] DEBUG o.s.b.f.s.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.aop.support.DefaultBeanFactoryPointcutAdvisor#0'
+23:19:43.504 [Test worker] DEBUG o.s.b.f.s.DefaultListableBeanFactory - Creating shared instance of singleton bean 'advice'
+23:19:43.504 [Test worker] DEBUG o.s.b.f.s.DefaultListableBeanFactory - Creating shared instance of singleton bean 'testBean'
+23:19:43.508 [Test worker] DEBUG o.s.b.f.s.DefaultListableBeanFactory - Creating shared instance of singleton bean 'scopedTarget.singletonScoped'
+23:19:43.508 [Test worker] DEBUG o.s.b.f.s.DefaultListableBeanFactory - Creating shared instance of singleton bean 'singletonScoped'
+23:19:43.509 [Test worker] DEBUG o.s.b.f.s.DefaultListableBeanFactory - Creating shared instance of singleton bean 'requestScoped'
+23:19:43.509 [Test worker] DEBUG o.s.b.f.s.DefaultListableBeanFactory - Creating shared instance of singleton bean 'sessionScoped'
+23:19:43.574 [Test worker] DEBUG o.s.w.c.s.XmlWebApplicationContext - Refreshing Root WebApplicationContext
+23:19:43.587 [Test worker] DEBUG o.s.b.f.x.XmlBeanDefinitionReader - Loaded 10 bean definitions from class path resource [org/springframework/aop/config/AopNamespaceHandlerScopeIntegrationTests-context.xml]
+23:19:43.587 [Test worker] DEBUG o.s.b.f.s.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.aop.config.internalAutoProxyCreator'
+23:19:43.588 [Test worker] DEBUG o.s.u.c.s.UiApplicationContextUtils - Unable to locate ThemeSource with name 'themeSource': using default [org.springframework.ui.context.support.ResourceBundleThemeSource@5b6d387b]
+23:19:43.588 [Test worker] DEBUG o.s.b.f.s.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.aop.support.DefaultBeanFactoryPointcutAdvisor#0'
+23:19:43.589 [Test worker] DEBUG o.s.b.f.s.DefaultListableBeanFactory - Creating shared instance of singleton bean 'advice'
+23:19:43.589 [Test worker] DEBUG o.s.b.f.s.DefaultListableBeanFactory - Creating shared instance of singleton bean 'testBean'
+23:19:43.592 [Test worker] DEBUG o.s.b.f.s.DefaultListableBeanFactory - Creating shared instance of singleton bean 'scopedTarget.singletonScoped'
+23:19:43.592 [Test worker] DEBUG o.s.b.f.s.DefaultListableBeanFactory - Creating shared instance of singleton bean 'singletonScoped'
+23:19:43.593 [Test worker] DEBUG o.s.b.f.s.DefaultListableBeanFactory - Creating shared instance of singleton bean 'requestScoped'
+23:19:43.593 [Test worker] DEBUG o.s.b.f.s.DefaultListableBeanFactory - Creating shared instance of singleton bean 'sessionScoped'
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

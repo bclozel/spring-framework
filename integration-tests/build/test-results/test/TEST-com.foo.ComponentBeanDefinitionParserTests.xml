@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.foo.ComponentBeanDefinitionParserTests" tests="3" skipped="0" failures="0" errors="0" timestamp="2019-07-24T21:19:43" hostname="Brians-MacBook-Pro.local" time="0.015">
+  <properties/>
+  <testcase name="testBionicFirstLevelChildren" classname="com.foo.ComponentBeanDefinitionParserTests" time="0.014"/>
+  <testcase name="testBionicBasic" classname="com.foo.ComponentBeanDefinitionParserTests" time="0.0"/>
+  <testcase name="testBionicSecondLevelChildren" classname="com.foo.ComponentBeanDefinitionParserTests" time="0.0"/>
+  <system-out><![CDATA[23:19:43.678 [Test worker] DEBUG o.s.b.f.x.XmlBeanDefinitionReader - Loaded 1 bean definitions from class path resource [com/foo/component-config.xml]
+23:19:43.679 [Test worker] DEBUG o.s.b.f.s.DefaultListableBeanFactory - Creating shared instance of singleton bean 'bionic-family'
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

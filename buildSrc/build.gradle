@@ -11,7 +11,10 @@ dependencies {
 	implementation "me.champeau.gradle:japicmp-gradle-plugin:0.2.8"
 	implementation "org.jetbrains.kotlin:kotlin-gradle-plugin:1.3.41"
 	implementation "org.jetbrains.dokka:dokka-gradle-plugin:0.9.18"
-
+	implementation "de.undercouch:gradle-download-task:4.0.0"
+	implementation "org.asciidoctor:asciidoctor-gradle-jvm:2.3.0"
+	//implementation "org.asciidoctor:asciidoctorj-pdf:1.5.0-alpha.16"
+	
 	testImplementation 'junit:junit:4.12'
 	testImplementation 'org.assertj:assertj-core:3.11.1'
 }
@@ -37,6 +40,10 @@ gradlePlugin {
 		javadocPlugin {
 			id = "org.springframework.build.javadoc"
 			implementationClass = "org.springframework.build.javadoc.JavadocPlugin"
+		}
+		refdocPlugin {
+			id = "org.springframework.build.refdoc"
+			implementationClass = "org.springframework.build.refdoc.RefdocPlugin"
 		}
 	}
 }
