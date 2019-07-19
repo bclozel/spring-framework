@@ -42,6 +42,10 @@ import org.jetbrains.dokka.gradle.DokkaTask;
  */
 public class JavadocPlugin implements Plugin<Project> {
 
+	public static final String JAVADOC_API_TASK_NAME = "api";
+
+	public static final String KOTLIN_API_TASK_NAME = "dokka";
+
 	@Override
 	public void apply(Project project) {
 		if (project.getRootProject() == project) {
@@ -77,7 +81,7 @@ public class JavadocPlugin implements Plugin<Project> {
 	 * to be published as HTML files on the official website.
 	 */
 	private void createJavadocApiTask(Project project) {
-		Javadoc javadoc = project.getTasks().create("api", Javadoc.class);
+		Javadoc javadoc = project.getTasks().create(JAVADOC_API_TASK_NAME, Javadoc.class);
 		javadoc.setGroup(JavaBasePlugin.DOCUMENTATION_GROUP);
 		javadoc.setDescription("Generates aggregated Javadoc API documentation.");
 		javadoc.setDestinationDir(new File(project.getBuildDir(), "docs/api"));
@@ -92,7 +96,7 @@ public class JavadocPlugin implements Plugin<Project> {
 			final JavaPluginConvention springAspects = project
 					.project(":spring-aspects").getConvention()
 					.getPlugin(JavaPluginConvention.class);
-			SourceSetOutput aspectsOutput = springAspects.getSourceSets().findByName("main").getOutput();
+			SourceSetOutput aspectsOutput = springAspects.getSourceSets().findByName(SourceSet.MAIN_SOURCE_SET_NAME).getOutput();
 			FileCollection subProjectsClasspath = project.getSubprojects().stream()
 					.map(p -> getCompileClasspath(p)).reduce((first, second) -> first.plus(second)).get();
 			javadoc.setClasspath(aspectsOutput.plus(subProjectsClasspath));

@@ -33,6 +33,8 @@ import org.gradle.api.tasks.Copy;
  */
 public class RefdocPlugin implements Plugin<Project> {
 
+	public static final String REFDOC_TASK_NAME = "refdoc";
+
 	private static final String SPRING_DOC_RESOURCES_VERSION = "0.1.2.RELEASE";
 
 	private static final String SPRING_DOC_RESOURCES_ZIP_URL =
@@ -95,7 +97,7 @@ public class RefdocPlugin implements Plugin<Project> {
 	}
 
 	private AsciidoctorTask refdoc(Project project, File docsResourcesFolder) {
-		AsciidoctorTask refdocs = project.getTasks().create("refdoc", AsciidoctorTask.class);
+		AsciidoctorTask refdocs = project.getTasks().create(REFDOC_TASK_NAME, AsciidoctorTask.class);
 		refdocs.setSourceDir(new File(project.getRootDir(), ASCIIDOC_ROOT_FOLDER));
 		refdocs.sources(pattern -> pattern.include("*.adoc"));
 		refdocs.baseDirFollowsSourceDir();

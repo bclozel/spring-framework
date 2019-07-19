@@ -45,5 +45,9 @@ gradlePlugin {
 			id = "org.springframework.build.refdoc"
 			implementationClass = "org.springframework.build.refdoc.RefdocPlugin"
 		}
+		packagedocsPlugin {
+			id = "org.springframework.build.packagedocs"
+			implementationClass = "org.springframework.build.packagedocs.PackageDocsPlugin"
+		}
 	}
 }
