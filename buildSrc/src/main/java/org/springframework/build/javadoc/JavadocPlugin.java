@@ -73,7 +73,12 @@ public class JavadocPlugin implements Plugin<Project> {
 			// Note that global 'api' task does display all warnings.
 			javadoc.getLogging().captureStandardError(LogLevel.INFO);
 			javadoc.getLogging().captureStandardOutput(LogLevel.INFO);
+
+			Jar javadocJar = project.getTasks().create("javadocJar", Jar.class);
+			javadocJar.from(javadoc);
+			javadocJar.getArchiveClassifier().set("javadoc");
 		});
+
 	}
 
 	/**

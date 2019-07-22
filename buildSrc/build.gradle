@@ -25,9 +25,9 @@ gradlePlugin {
 			id = "org.springframework.build.apidiff"
 			implementationClass = "org.springframework.build.apidiff.ApiDiffPlugin"
 		}
-		compileConventionsPlugin {
+		compilePlugin {
 			id = "org.springframework.build.compile"
-			implementationClass = "org.springframework.build.compile.CompileConventionsPlugin"
+			implementationClass = "org.springframework.build.compile.CompilePlugin"
 		}
 		testSourcesPlugin {
 			id = "org.springframework.build.test-sources"
@@ -48,6 +48,10 @@ gradlePlugin {
 		packagedocsPlugin {
 			id = "org.springframework.build.packagedocs"
 			implementationClass = "org.springframework.build.packagedocs.PackageDocsPlugin"
+		}
+		publishPlugin {
+			id = "org.springframework.build.publish"
+			implementationClass = "org.springframework.build.publish.MavenPublishConventions"
 		}
 	}
 }

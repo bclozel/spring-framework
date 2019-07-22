@@ -24,9 +24,12 @@ import java.util.List;
 import org.gradle.api.JavaVersion;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
+import org.gradle.api.file.DuplicatesStrategy;
 import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.plugins.JavaPluginConvention;
+import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.TaskCollection;
+import org.gradle.api.tasks.bundling.Jar;
 import org.gradle.api.tasks.compile.JavaCompile;
 import org.jetbrains.kotlin.gradle.plugin.KotlinPluginWrapper;
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile;
@@ -96,6 +99,12 @@ public class CompileConventionsPlugin implements Plugin<Project> {
 			}
 			compileTask.getOptions().setEncoding("UTF-8");
 		});
+
+		Jar sourcesJar = project.getTasks().create("sourcesJar", Jar.class);
+		sourcesJar.dependsOn(JavaPlugin.CLASSES_TASK_NAME);
+		sourcesJar.setDuplicatesStrategy(DuplicatesStrategy.EXCLUDE);
+		sourcesJar.getArchiveClassifier().set("sources");
+		sourcesJar.from(java.getSourceSets().named(SourceSet.MAIN_SOURCE_SET_NAME).get().getAllSource());
 	}
 
 	/**
