@@ -18,7 +18,7 @@ package org.springframework.build.publish;
 
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
-import org.gradle.api.artifacts.Configuration;
+import org.gradle.api.component.SoftwareComponent;
 import org.gradle.api.publish.PublishingExtension;
 import org.gradle.api.publish.maven.MavenPom;
 import org.gradle.api.publish.maven.MavenPublication;
@@ -32,13 +32,13 @@ public class MavenPublishConventions implements Plugin<Project> {
 	@Override
 	public void apply(Project project) {
 		project.getPluginManager().apply(MavenPublishPlugin.class);
-		project.getPlugins().withType(MavenPublishPlugin.class, plugin -> customizePublication(project));
-		if(project == project.getRootProject()) {
+		if (project == project.getRootProject()) {
 			project.getPlugins().withType(MavenPublishPlugin.class, plugin -> publishRootArtifacts(project));
 		}
 		else {
 			project.getPlugins().withType(MavenPublishPlugin.class, plugin -> publishModuleArtifacts(project));
 		}
+		project.getPlugins().withType(MavenPublishPlugin.class, plugin -> customizePublication(project));
 	}
 
 	private void customizePublication(Project project) {
@@ -77,20 +77,22 @@ public class MavenPublishConventions implements Plugin<Project> {
 	}
 
 	private void publishRootArtifacts(Project project) {
-		// Don't publish the default jar for the root project
-		Configuration archives = project.getConfigurations().getByName("archives");
-		archives.getArtifacts().clear();
-		project.afterEvaluate(p -> {
-			p.getArtifacts().add("archives", p.getTasks().findByName("docsZip"));
-			p.getArtifacts().add("archives",  p.getTasks().findByName("schemaZip"));
-			p.getArtifacts().add("archives",  p.getTasks().findByName("distZip"));
+		PublishingExtension publishing = project.getExtensions().getByType(PublishingExtension.class);
+		publishing.getPublications().create("mavenJava", MavenPublication.class, p -> {
+			// Don't publish the default jar for the root project
+			p.artifact(project.getTasks().findByName("docsZip"));
+			p.artifact(project.getTasks().findByName("schemaZip"));
+			p.artifact(project.getTasks().findByName("distZip"));
 		});
 	}
 
 	private void publishModuleArtifacts(Project project) {
-		project.afterEvaluate(p -> {
-			p.getArtifacts().add("archives", p.getTasks().findByName("sourcesJar"));
-			p.getArtifacts().add("archives",  p.getTasks().findByName("javadocJar"));
+		PublishingExtension publishing = project.getExtensions().getByType(PublishingExtension.class);
+		publishing.getPublications().create("mavenJava", MavenPublication.class, p -> {
+			SoftwareComponent java = project.getComponents().named("java").get();
+			p.from(java);
+			p.artifact(project.getTasks().findByName("sourcesJar"));
+			p.artifact(project.getTasks().findByName("javadocJar"));
 		});
 	}
 
