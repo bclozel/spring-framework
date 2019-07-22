@@ -33,31 +33,32 @@ public class JarConventionsPlugin implements Plugin<Project> {
 
 	@Override
 	public void apply(Project project) {
-		if(project != project.getRootProject()) {
+		if (project != project.getRootProject()) {
 			project.getPlugins().withType(JavaPlugin.class, java -> configureJarConventions(project));
 		}
 	}
 
 	private void configureJarConventions(Project project) {
 		project.getTasks().withType(Jar.class, jar -> {
-			 jar.manifest(manifest -> {
-				 Map<String, String> attributes = new HashMap<>();
-				 attributes.put("Implementation-Title", project.getName());
-				 attributes.put("Implementation-Version", project.getVersion().toString());
-				 // for Jigsaw
-				 attributes.put("Automatic-Module-Name", project.getName().replace('-', '.'));
-				 attributes.put("Created-By", System.getProperty("java.version")
-				 + " (" + System.getProperty("java.specification.vendor") +")");
-			 	 manifest.attributes(attributes);
-			 });
+			jar.manifest(manifest -> {
+				Map<String, String> attributes = new HashMap<>();
+				attributes.put("Implementation-Title", project.getName());
+				attributes.put("Implementation-Version", project.getVersion().toString());
+				// for Jigsaw
+				attributes.put("Automatic-Module-Name", project.getName().replace('-', '.'));
+				attributes.put("Created-By", System.getProperty("java.version")
+						+ " (" + System.getProperty("java.specification.vendor") + ")");
+				manifest.attributes(attributes);
+			});
 
-			 Map<String, String> expand = new HashMap<>();
-			 expand.put("copyright", Year.now().toString());
-			 expand.put("version", project.getVersion().toString());
-			jar.from(new File(project.getRootDir() + "src/docs/dist"))
-					.include("license.txt", "notice.txt")
-					.into("META-INF")
+			Map<String, String> expand = new HashMap<>();
+			expand.put("copyright", Year.now().toString());
+			expand.put("version", project.getVersion().toString());
+			jar.from(new File(project.getRootDir() + "/src/docs/dist"), copy -> {
+					copy.include("license.txt", "notice.txt")
+					.into("META-INF/")
 					.expand(expand);
+			});
 		});
 	}
 }
