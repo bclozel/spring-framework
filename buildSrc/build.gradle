@@ -53,5 +53,9 @@ gradlePlugin {
 			id = "org.springframework.build.publish"
 			implementationClass = "org.springframework.build.publish.MavenPublishConventions"
 		}
+		optionalDependenciesPlugin {
+			id = "org.springframework.build.optional-dependencies"
+			implementationClass = "org.springframework.build.optional.OptionalDependenciesPlugin"
+		}
 	}
 }

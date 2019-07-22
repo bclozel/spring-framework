@@ -3,7 +3,6 @@ buildscript {
 		maven { url "https://repo.spring.io/plugins-release" }
 	}
 	dependencies {
-		classpath("io.spring.gradle:propdeps-plugin:0.0.9.RELEASE")
 		classpath("io.spring.nohttp:nohttp-gradle:0.0.3.RELEASE")
 	}
 }
@@ -48,10 +47,10 @@ ext {
 configure(allprojects) { project ->
 	group = "org.springframework"
 
-	apply plugin: "java"
+	apply plugin: "java-library"
 	apply plugin: "kotlin"
 	apply plugin: "checkstyle"
-	apply plugin: "propdeps"
+	apply plugin: 'org.springframework.build.optional-dependencies'
 	apply plugin: 'org.springframework.build.compile'
 	apply plugin: 'org.springframework.build.test-sources'
 	apply plugin: "io.spring.dependency-management"
