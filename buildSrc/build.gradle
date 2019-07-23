@@ -13,6 +13,8 @@ dependencies {
 	implementation "org.jetbrains.dokka:dokka-gradle-plugin:0.9.18"
 	implementation "de.undercouch:gradle-download-task:4.0.0"
 	implementation "org.asciidoctor:asciidoctor-gradle-jvm:2.3.0"
+	implementation "io.spring.nohttp:nohttp-gradle:0.0.3.RELEASE"
+	
 	//implementation "org.asciidoctor:asciidoctorj-pdf:1.5.0-alpha.16"
 	
 	testImplementation 'junit:junit:4.12'
@@ -28,6 +30,10 @@ gradlePlugin {
 		compilePlugin {
 			id = "org.springframework.build.compile"
 			implementationClass = "org.springframework.build.compile.CompilePlugin"
+		}
+		checkSourcesPlugin {
+			id = "org.springframework.build.check-sources"
+			implementationClass = "org.springframework.build.checks.CheckSourcesPlugin"
 		}
 		testSourcesPlugin {
 			id = "org.springframework.build.test-sources"
