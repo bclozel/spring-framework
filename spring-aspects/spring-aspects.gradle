@@ -1,3 +1,5 @@
+apply plugin: "org.springframework.build.spring-module"
+
 description = "Spring Aspects"
 
 // Redefine the compileJava and compileTestJava tasks in order to compile sources with ajc instead of javac

@@ -57,5 +57,13 @@ gradlePlugin {
 			id = "org.springframework.build.optional-dependencies"
 			implementationClass = "org.springframework.build.optional.OptionalDependenciesPlugin"
 		}
+		springModulePlugin {
+			id = "org.springframework.build.spring-module"
+			implementationClass = "org.springframework.build.springmodule.SpringModuleConventions"
+		}
+		testConventionsPlugin {
+			id = "org.springframework.build.tests"
+			implementationClass = "org.springframework.build.tests.TestsConventions"
+		}
 	}
 }

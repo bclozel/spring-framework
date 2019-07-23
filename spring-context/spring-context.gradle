@@ -1,6 +1,8 @@
-description = "Spring Context"
-
+apply plugin: "org.springframework.build.spring-module"
+apply plugin: "kotlin"
 apply plugin: "groovy"
+
+description = "Spring Context"
 
 dependencyManagement {
 	imports {

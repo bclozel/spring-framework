@@ -1,6 +1,8 @@
-description = "Spring Beans"
-
+apply plugin: "org.springframework.build.spring-module"
+apply plugin: "kotlin"
 apply plugin: "groovy"
+
+description = "Spring Beans"
 
 dependencies {
 	compile(project(":spring-core"))
