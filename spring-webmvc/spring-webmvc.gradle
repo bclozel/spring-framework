@@ -3,13 +3,6 @@ apply plugin: "kotlin"
 
 description = "Spring Web MVC"
 
-dependencyManagement {
-	imports {
-		mavenBom "io.projectreactor:reactor-bom:${reactorVersion}"
-		mavenBom "org.eclipse.jetty:jetty-bom:${jettyVersion}"
-	}
-}
-
 dependencies {
 	compile(project(":spring-aop"))
 	compile(project(":spring-beans"))
@@ -28,21 +21,18 @@ dependencies {
 	optional("com.rometools:rome:1.12.1")
 	optional("com.github.librepdf:openpdf:1.2.21")
 	optional("org.apache.poi:poi-ooxml:4.1.0")
-	optional("org.freemarker:freemarker:${freemarkerVersion}")
-	optional("com.fasterxml.jackson.core:jackson-databind:${jackson2Version}")
-	optional("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:${jackson2Version}")
-	optional("com.fasterxml.jackson.dataformat:jackson-dataformat-smile:${jackson2Version}")
-	optional("com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:${jackson2Version}")
-	optional("org.apache.tiles:tiles-api:${tiles3Version}", withoutJclOverSlf4j)
-	optional("org.apache.tiles:tiles-core:${tiles3Version}", withoutJclOverSlf4j)
-	optional("org.apache.tiles:tiles-servlet:${tiles3Version}", withoutJclOverSlf4j)
-	optional("org.apache.tiles:tiles-jsp:${tiles3Version}", withoutJclOverSlf4j)
-	optional("org.apache.tiles:tiles-el:${tiles3Version}", withoutJclOverSlf4j)
-	optional("org.apache.tiles:tiles-extras:${tiles3Version}") {
-		exclude group: "org.springframework", module: "spring-web"
-		exclude group: "org.slf4j", module: "jcl-over-slf4j"
-	}
-	optional("org.codehaus.groovy:groovy-templates:${groovyVersion}")
+	optional("org.freemarker:freemarker")
+	optional("com.fasterxml.jackson.core:jackson-databind")
+	optional("com.fasterxml.jackson.dataformat:jackson-dataformat-xml")
+	optional("com.fasterxml.jackson.dataformat:jackson-dataformat-smile")
+	optional("com.fasterxml.jackson.dataformat:jackson-dataformat-cbor")
+	optional("org.apache.tiles:tiles-api")
+	optional("org.apache.tiles:tiles-core")
+	optional("org.apache.tiles:tiles-servlet")
+	optional("org.apache.tiles:tiles-jsp")
+	optional("org.apache.tiles:tiles-el")
+	optional("org.apache.tiles:tiles-extras")
+	optional("org.codehaus.groovy:groovy-templates")
 	optional("org.jetbrains.kotlin:kotlin-reflect")
 	optional("org.jetbrains.kotlin:kotlin-stdlib")
 	optional("org.reactivestreams:reactive-streams")
@@ -72,9 +62,9 @@ dependencies {
 	testCompile("org.xmlunit:xmlunit-matchers:2.6.2")
 	testCompile("org.hibernate:hibernate-validator:6.0.17.Final")
 	testCompile("io.projectreactor:reactor-core")
-	testCompile("io.reactivex:rxjava:${rxjavaVersion}")
-	testCompile("io.reactivex:rxjava-reactive-streams:${rxjavaAdapterVersion}")
-	testCompile("io.reactivex.rxjava2:rxjava:${rxjava2Version}")
+	testCompile("io.reactivex:rxjava")
+	testCompile("io.reactivex:rxjava-reactive-streams")
+	testCompile("io.reactivex.rxjava2:rxjava")
 	testCompile("org.jetbrains.kotlin:kotlin-script-runtime")
 	testRuntime("org.jetbrains.kotlin:kotlin-scripting-jsr223-embeddable")
 	testRuntime("org.jruby:jruby:9.2.7.0")

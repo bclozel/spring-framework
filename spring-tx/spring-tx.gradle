@@ -2,12 +2,6 @@ apply plugin: "org.springframework.build.spring-module"
 
 description = "Spring Transaction"
 
-dependencyManagement {
-	imports {
-		mavenBom "io.projectreactor:reactor-bom:${reactorVersion}"
-	}
-}
-
 dependencies {
 	compile(project(":spring-beans"))
 	compile(project(":spring-core"))
@@ -20,8 +14,8 @@ dependencies {
 	optional("com.ibm.websphere:uow:6.0.2.17")
 	optional("io.projectreactor:reactor-core")
 	optional("io.vavr:vavr:0.10.0")
-	testCompile("org.aspectj:aspectjweaver:${aspectjVersion}")
-	testCompile("org.codehaus.groovy:groovy:${groovyVersion}")
+	testCompile("org.aspectj:aspectjweaver")
+	testCompile("org.codehaus.groovy:groovy")
 	testCompile("org.eclipse.persistence:javax.persistence:2.2.0")
 	testCompile("io.projectreactor:reactor-test")
 }

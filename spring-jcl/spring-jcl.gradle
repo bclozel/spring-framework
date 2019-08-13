@@ -3,6 +3,6 @@ apply plugin: "org.springframework.build.spring-module"
 description = "Spring Commons Logging Bridge"
 
 dependencies {
-	optional("org.apache.logging.log4j:log4j-api:${log4jVersion}")
-	optional("org.slf4j:slf4j-api:${slf4jVersion}")
+	optional("org.apache.logging.log4j:log4j-api")
+	optional("org.slf4j:slf4j-api")
 }

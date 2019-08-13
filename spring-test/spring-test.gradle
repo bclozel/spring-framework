@@ -3,13 +3,6 @@ apply plugin: "kotlin"
 
 description = "Spring TestContext Framework"
 
-dependencyManagement {
-	imports {
-		mavenBom "io.projectreactor:reactor-bom:${reactorVersion}"
-		mavenBom "io.netty:netty-bom:${nettyVersion}"
-	}
-}
-
 dependencies {
 	compile(project(":spring-core"))
 	optional(project(":spring-aop"))
@@ -33,8 +26,8 @@ dependencies {
 	optional("junit:junit:4.13-beta-3")
 	optional("org.junit.jupiter:junit-jupiter-api")
 	optional("org.testng:testng:6.14.3")
-	optional("org.aspectj:aspectjweaver:${aspectjVersion}")
-	optional("org.codehaus.groovy:groovy:${groovyVersion}")
+	optional("org.aspectj:aspectjweaver")
+	optional("org.codehaus.groovy:groovy")
 	optional("org.hamcrest:hamcrest-core:1.3")
 	optional("org.apache.taglibs:taglibs-standard-jstlel:1.2.5") {
 		exclude group: "org.apache.taglibs", module: "taglibs-standard-spec"
@@ -69,13 +62,13 @@ dependencies {
 	testCompile("org.junit.platform:junit-platform-runner")
 	testCompile("org.junit.platform:junit-platform-testkit")
 	testCompile("org.junit.jupiter:junit-jupiter-params")
-	testCompile("com.fasterxml.jackson.core:jackson-databind:${jackson2Version}")
+	testCompile("com.fasterxml.jackson.core:jackson-databind")
 	testCompile("com.thoughtworks.xstream:xstream:1.4.11.1")
 	testCompile("com.rometools:rome:1.12.1")
-	testCompile("org.apache.tiles:tiles-api:${tiles3Version}")
-	testCompile("org.apache.tiles:tiles-core:${tiles3Version}", withoutJclOverSlf4j)
-	testCompile("org.apache.tiles:tiles-servlet:${tiles3Version}", withoutJclOverSlf4j)
-	testCompile("org.hsqldb:hsqldb:${hsqldbVersion}")
+	testCompile("org.apache.tiles:tiles-api")
+	testCompile("org.apache.tiles:tiles-core")
+	testCompile("org.apache.tiles:tiles-servlet")
+	testCompile("org.hsqldb:hsqldb")
 	testCompile("org.apache.httpcomponents:httpclient:4.5.9") {
 		exclude group: "commons-logging", module: "commons-logging"
 	}

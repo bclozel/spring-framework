@@ -1,4 +1,5 @@
 apply plugin: "org.springframework.build.compile"
+apply plugin: "java-library"
 apply plugin: "kotlin"
 
 description = "Spring Core Coroutines support"
