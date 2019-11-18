@@ -442,11 +442,22 @@ public interface WebTestClient {
 		Builder filters(Consumer<List<ExchangeFilterFunction>> filtersConsumer);
 
 		/**
-		 * Configure the {@link ExchangeStrategies} to use.
-		 * <p>By default {@link ExchangeStrategies#withDefaults()} is used.
+		 * Provide the {@link ExchangeStrategies} builder to use.
+		 * <p>This is useful for changing the default settings, yet still allowing
+		 * further customizations via {@link #exchangeStrategies(Consumer)}.
+		 * If not set, defaults are obtained from {@link ExchangeStrategies#builder()}.
 		 * @param strategies the strategies to use
 		 */
-		Builder exchangeStrategies(ExchangeStrategies strategies);
+		Builder exchangeStrategies(ExchangeStrategies.Builder strategies);
+
+		/**
+		 * Customize the {@link ExchangeStrategies}.
+		 * <p>Allows further customization on {@link ExchangeStrategies},
+		 * mutating them if they were {@link #exchangeStrategies(ExchangeStrategies.Builder) set},
+		 * or starting from {@link ExchangeStrategies#builder() defaults}.
+		 * @since 5.3.0
+		 */
+		Builder exchangeStrategies(Consumer<ExchangeStrategies.Builder> builderConsumer);
 
 		/**
 		 * Max amount of time to wait for responses.

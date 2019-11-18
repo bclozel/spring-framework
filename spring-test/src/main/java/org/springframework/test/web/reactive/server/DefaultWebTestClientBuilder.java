@@ -137,8 +137,14 @@ class DefaultWebTestClientBuilder implements WebTestClient.Builder {
 	}
 
 	@Override
-	public WebTestClient.Builder exchangeStrategies(ExchangeStrategies strategies) {
+	public WebTestClient.Builder exchangeStrategies(ExchangeStrategies.Builder strategies) {
 		this.webClientBuilder.exchangeStrategies(strategies);
+		return this;
+	}
+
+	@Override
+	public WebTestClient.Builder exchangeStrategies(Consumer<ExchangeStrategies.Builder> builderConsumer) {
+		this.webClientBuilder.exchangeStrategies(builderConsumer);
 		return this;
 	}
 
