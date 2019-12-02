@@ -18,6 +18,7 @@ package org.springframework.http.codec.support;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 import org.springframework.core.ResolvableType;
 import org.springframework.core.codec.Decoder;
@@ -27,6 +28,7 @@ import org.springframework.http.codec.DecoderHttpMessageReader;
 import org.springframework.http.codec.EncoderHttpMessageWriter;
 import org.springframework.http.codec.HttpMessageReader;
 import org.springframework.http.codec.HttpMessageWriter;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
@@ -38,6 +40,8 @@ import org.springframework.util.Assert;
  * @since 5.0
  */
 abstract class BaseCodecConfigurer implements CodecConfigurer {
+
+	protected boolean customCodecsInitialized;
 
 	protected final BaseDefaultCodecs defaultCodecs;
 
@@ -88,6 +92,7 @@ abstract class BaseCodecConfigurer implements CodecConfigurer {
 
 	@Override
 	public List<HttpMessageReader<?>> getReaders() {
+		initializeCustomCodecs();
 		List<HttpMessageReader<?>> result = new ArrayList<>();
 
 		result.addAll(this.customCodecs.getTypedReaders());
@@ -113,6 +118,7 @@ abstract class BaseCodecConfigurer implements CodecConfigurer {
 	 * same except for the multipart writer itself.
 	 */
 	protected List<HttpMessageWriter<?>> getWritersInternal(boolean forMultipart) {
+		initializeCustomCodecs();
 		List<HttpMessageWriter<?>> result = new ArrayList<>();
 
 		result.addAll(this.customCodecs.getTypedWriters());
@@ -128,6 +134,37 @@ abstract class BaseCodecConfigurer implements CodecConfigurer {
 	@Override
 	public abstract CodecConfigurer clone();
 
+	private void initializeCustomCodecs() {
+		if(!this.customCodecsInitialized) {
+			BaseDefaultCodecsConfig config = new BaseDefaultCodecsConfig(this.defaultCodecs.maxInMemorySize(),
+					this.defaultCodecs.isEnableLoggingRequestDetails());
+			this.customCodecs.configConsumers.forEach(consumer -> consumer.accept(config));
+			this.customCodecsInitialized = true;
+		}
+	}
+
+	protected static final class BaseDefaultCodecsConfig implements DefaultCodecsConfig {
+
+		private final Integer maxInMemorySize;
+
+		private final boolean loggingRequestDetailsEnabled;
+
+		public BaseDefaultCodecsConfig(@Nullable Integer maxInMemorySize, boolean loggingRequestDetailsEnabled) {
+			this.maxInMemorySize = maxInMemorySize;
+			this.loggingRequestDetailsEnabled = loggingRequestDetailsEnabled;
+		}
+
+		@Override
+		public Integer maxInMemorySize() {
+			return this.maxInMemorySize;
+		}
+
+		@Override
+		public boolean loggingRequestDetailsEnabled() {
+			return this.loggingRequestDetailsEnabled;
+		}
+	}
+
 
 	/**
 	 * Default implementation of {@code CustomCodecs}.
@@ -142,6 +179,7 @@ abstract class BaseCodecConfigurer implements CodecConfigurer {
 
 		private final List<HttpMessageWriter<?>> objectWriters = new ArrayList<>();
 
+		private final List<Consumer<DefaultCodecsConfig>> configConsumers = new ArrayList<>();
 
 		DefaultCustomCodecs() {
 		}
@@ -177,6 +215,11 @@ abstract class BaseCodecConfigurer implements CodecConfigurer {
 		public void writer(HttpMessageWriter<?> writer) {
 			boolean canWriteObject = writer.canWrite(ResolvableType.forClass(Object.class), null);
 			(canWriteObject ? this.objectWriters : this.typedWriters).add(writer);
+		}
+
+		@Override
+		public void defaultCodecsConfig(Consumer<DefaultCodecsConfig> codecsConfigConsumer) {
+			this.configConsumers.add(codecsConfigConsumer);
 		}
 
 		// Package private accessors...

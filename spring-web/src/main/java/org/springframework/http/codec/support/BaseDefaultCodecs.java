@@ -160,7 +160,7 @@ class BaseDefaultCodecs implements CodecConfigurer.DefaultCodecs {
 	}
 
 	@Nullable
-	protected Integer maxInMemorySize() {
+	Integer maxInMemorySize() {
 		return this.maxInMemorySize;
 	}
 
@@ -169,7 +169,7 @@ class BaseDefaultCodecs implements CodecConfigurer.DefaultCodecs {
 		this.enableLoggingRequestDetails = enable;
 	}
 
-	protected boolean isEnableLoggingRequestDetails() {
+	boolean isEnableLoggingRequestDetails() {
 		return this.enableLoggingRequestDetails;
 	}
 

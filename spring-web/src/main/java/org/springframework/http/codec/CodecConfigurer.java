@@ -17,6 +17,7 @@
 package org.springframework.http.codec;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 import org.springframework.core.codec.Decoder;
 import org.springframework.core.codec.Encoder;
@@ -177,6 +178,22 @@ public interface CodecConfigurer {
 		void enableLoggingRequestDetails(boolean enable);
 	}
 
+	interface DefaultCodecsConfig {
+
+		/**
+		 * Get the configured limit on the number of bytes that can be buffered whenever
+		 * the input stream needs to be aggregated.
+		 * @since 5.1.12
+		 */
+		Integer maxInMemorySize();
+
+		/**
+		 * Whether to log form data at DEBUG level, and headers at TRACE level.
+		 * Both may contain sensitive information.
+		 * @since 5.1.12
+		 */
+		boolean loggingRequestDetailsEnabled();
+	}
 
 	/**
 	 * Registry for custom HTTP message readers and writers.
@@ -212,6 +229,16 @@ public interface CodecConfigurer {
 		 * @param writer the writer to add
 		 */
 		void writer(HttpMessageWriter<?> writer);
+
+		/**
+		 * Register a callback for the {@link DefaultCodecsConfig configuration}
+		 * applied to default codecs. This allows custom codecs to follow general
+		 * guidelines applied to default ones, such as logging details and limiting
+		 * the amount of buffered data.
+		 * @param codecsConfigConsumer the default codecs configuration callback
+		 * @since 5.1.12
+		 */
+		void defaultCodecsConfig(Consumer<DefaultCodecsConfig> codecsConfigConsumer);
 	}
 
 }
