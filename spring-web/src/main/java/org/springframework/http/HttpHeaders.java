@@ -31,6 +31,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
@@ -1825,6 +1826,18 @@ public class HttpHeaders implements MultiValueMap<String, String>, Serializable 
 		String credentialsString = username + ":" + password;
 		byte[] encodedBytes = Base64.getEncoder().encode(credentialsString.getBytes(charset));
 		return new String(encodedBytes, charset);
+	}
+
+	/**
+	 * Return the list of well-known {@code "Content-*"} HTTP header names.
+	 * <p>Such headers should be cleared, if possible, from the response if the intended
+	 * body can't be written due to errors.
+	 */
+	public static Collection<String> contentHeaders() {
+		return Arrays.asList(HttpHeaders.CONTENT_DISPOSITION,
+				HttpHeaders.CONTENT_ENCODING, HttpHeaders.CONTENT_LANGUAGE,
+				HttpHeaders.CONTENT_LENGTH, HttpHeaders.CONTENT_LOCATION,
+				HttpHeaders.CONTENT_RANGE, HttpHeaders.CONTENT_TYPE);
 	}
 
 	// Package-private: used in ResponseCookie
