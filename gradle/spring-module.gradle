@@ -9,6 +9,7 @@ dependencies {
 	jmh 'net.sf.jopt-simple:jopt-simple:4.6'
 }
 jmh {
+	includeTests = false
 	duplicateClassesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
