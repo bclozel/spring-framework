@@ -124,11 +124,6 @@ task extractDocResources(type: Copy, dependsOn: downloadResources) {
 }
 
 asciidoctorj {
-	modules {
-		pdf {
-			version '1.5.0-beta.8'
-		}
-	}
 	fatalWarnings ".*"
 }
 
@@ -170,6 +165,7 @@ asciidoctor {
 			'spring-version': project.version
 	])
 }
+asciidoctor.dependsOn extractDocResources
 
 /**
  * Zip all docs (API and reference) into a single archive
