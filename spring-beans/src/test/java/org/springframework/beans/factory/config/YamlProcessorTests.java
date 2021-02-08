@@ -138,14 +138,12 @@ class YamlProcessorTests {
 	}
 
 	@Test
-	void customTypeSupportedByDefault() throws Exception {
+	void customTypeNotSupportedByDefault() throws Exception {
 		URL url = new URL("https://localhost:9000/");
 		setYaml("value: !!java.net.URL [\"" + url + "\"]");
-
-		this.processor.process((properties, map) -> {
-			assertThat(properties).containsExactly(entry("value", url));
-			assertThat(map).containsExactly(entry("value", url));
-		});
+		assertThatExceptionOfType(ConstructorException.class)
+				.isThrownBy(() -> this.processor.process((properties, map) -> {}))
+				.withMessageContaining("Unsupported type encountered in YAML document: java.net.URL");
 	}
 
 	@Test
