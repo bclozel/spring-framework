@@ -44,6 +44,14 @@ class AntPathMatcherTests {
 
 
 	@Test
+	void other() {
+		assertThat(pathMatcher.match("/*/foo", "/en/foo")).isTrue();
+		assertThat(pathMatcher.match("/*/foo", "/en/foo/")).isFalse();
+		assertThat(pathMatcher.match("/**/foo", "/en/foo")).isTrue();
+		assertThat(pathMatcher.match("/**/foo", "/en/foo/")).isFalse(); // fails
+	}
+
+	@Test
 	void match() {
 		// test exact matching
 		assertThat(pathMatcher.match("test", "test")).isTrue();
