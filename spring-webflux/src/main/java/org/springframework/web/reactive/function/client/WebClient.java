@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,8 @@ import java.util.function.Function;
 import java.util.function.IntPredicate;
 import java.util.function.Predicate;
 
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -320,6 +322,23 @@ public interface WebClient {
 		 * @param exchangeFunction the exchange function to use
 		 */
 		Builder exchangeFunction(ExchangeFunction exchangeFunction);
+
+		/**
+		 * Provide an {@link ObservationRegistry} to use for recording
+		 * observations for HTTP client calls. By default, {@link Observation} are No-Ops.
+		 * @param observationRegistry the observation registry to use
+		 * @since 6.0
+		 */
+		Builder observationRegistry(ObservationRegistry observationRegistry);
+
+		/**
+		 * Provide a {@link Observation.KeyValuesProvider} to use for collecting
+		 * metadata for the current observation. If none set, the
+		 * {@link WebClientKeyValuesProvider default KeyValues provider} will be used.
+		 * @param keyValuesProvider the KeyValues provider to use
+		 * @since 6.0
+		 */
+		Builder keyValuesProvider(Observation.KeyValuesProvider<WebClientObservationContext> keyValuesProvider);
 
 		/**
 		 * Apply the given {@code Consumer} to this builder instance.

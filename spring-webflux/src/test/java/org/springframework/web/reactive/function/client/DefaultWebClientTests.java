@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,13 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+import io.micrometer.common.KeyValues;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.observation.TimerObservationHandler;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import io.micrometer.core.tck.MeterRegistryAssert;
+import io.micrometer.observation.ObservationRegistry;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -62,6 +69,11 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 @MockitoSettings(strictness = Strictness.LENIENT)
 public class DefaultWebClientTests {
 
+	private static final ObservationRegistry observationRegistry = ObservationRegistry.create();
+
+	private static final MeterRegistry meterRegistry = new SimpleMeterRegistry();
+
+
 	@Mock
 	private ExchangeFunction exchangeFunction;
 
@@ -71,18 +83,26 @@ public class DefaultWebClientTests {
 	private WebClient.Builder builder;
 
 
+	@BeforeAll
+	static void setupAll() {
+		observationRegistry.observationConfig().observationHandler(new TimerObservationHandler(meterRegistry));
+	}
+
+
 	@BeforeEach
-	public void setup() {
+	void setup() {
+		meterRegistry.clear();
 		ClientResponse mockResponse = mock(ClientResponse.class);
 		when(mockResponse.statusCode()).thenReturn(HttpStatus.OK);
 		when(mockResponse.bodyToMono(Void.class)).thenReturn(Mono.empty());
+		when(mockResponse.rawStatusCode()).thenReturn(200);
 		given(this.exchangeFunction.exchange(this.captor.capture())).willReturn(Mono.just(mockResponse));
-		this.builder = WebClient.builder().baseUrl("/base").exchangeFunction(this.exchangeFunction);
+		this.builder = WebClient.builder().baseUrl("/base").exchangeFunction(this.exchangeFunction).observationRegistry(observationRegistry);
 	}
 
 
 	@Test
-	public void basic() {
+	void basic() {
 		this.builder.build().get().uri("/path")
 				.retrieve().bodyToMono(Void.class).block(Duration.ofSeconds(10));
 
@@ -93,7 +113,7 @@ public class DefaultWebClientTests {
 	}
 
 	@Test
-	public void uriBuilder() {
+	void uriBuilder() {
 		this.builder.build().get()
 				.uri(builder -> builder.path("/path").queryParam("q", "12").build())
 				.retrieve().bodyToMono(Void.class).block(Duration.ofSeconds(10));
@@ -102,8 +122,9 @@ public class DefaultWebClientTests {
 		assertThat(request.url().toString()).isEqualTo("/base/path?q=12");
 	}
 
-	@Test // gh-22705
-	public void uriBuilderWithUriTemplate() {
+	@Test
+		// gh-22705
+	void uriBuilderWithUriTemplate() {
 		this.builder.build().get()
 				.uri("/path/{id}", builder -> builder.queryParam("q", "12").build("identifier"))
 				.retrieve().bodyToMono(Void.class).block(Duration.ofSeconds(10));
@@ -114,7 +135,7 @@ public class DefaultWebClientTests {
 	}
 
 	@Test
-	public void uriBuilderWithPathOverride() {
+	void uriBuilderWithPathOverride() {
 		this.builder.build().get()
 				.uri(builder -> builder.replacePath("/path").build())
 				.retrieve().bodyToMono(Void.class).block(Duration.ofSeconds(10));
@@ -124,9 +145,9 @@ public class DefaultWebClientTests {
 	}
 
 	@Test
-	public void requestHeaderAndCookie() {
+	void requestHeaderAndCookie() {
 		this.builder.build().get().uri("/path").accept(MediaType.APPLICATION_JSON)
-				.cookies(cookies -> cookies.add("id", "123"))	// SPR-16178
+				.cookies(cookies -> cookies.add("id", "123"))    // SPR-16178
 				.retrieve().bodyToMono(Void.class).block(Duration.ofSeconds(10));
 
 		ClientRequest request = verifyAndGetRequest();
@@ -136,7 +157,7 @@ public class DefaultWebClientTests {
 
 	@Test
 	@SuppressWarnings("deprecation")
-	public void contextFromThreadLocal() {
+	void contextFromThreadLocal() {
 		WebClient client = this.builder
 				.filter((request, next) ->
 						// Async, continue on different thread
@@ -164,9 +185,10 @@ public class DefaultWebClientTests {
 	}
 
 	@Test
-	public void httpRequest() {
+	void httpRequest() {
 		this.builder.build().get().uri("/path")
-				.httpRequest(httpRequest -> {})
+				.httpRequest(httpRequest -> {
+				})
 				.retrieve().bodyToMono(Void.class).block(Duration.ofSeconds(10));
 
 		ClientRequest request = verifyAndGetRequest();
@@ -174,7 +196,7 @@ public class DefaultWebClientTests {
 	}
 
 	@Test
-	public void defaultHeaderAndCookie() {
+	void defaultHeaderAndCookie() {
 		WebClient client = this.builder
 				.defaultHeader("Accept", "application/json")
 				.defaultCookie("id", "123")
@@ -189,7 +211,7 @@ public class DefaultWebClientTests {
 	}
 
 	@Test
-	public void defaultHeaderAndCookieOverrides() {
+	void defaultHeaderAndCookieOverrides() {
 		WebClient client = this.builder
 				.defaultHeader("Accept", "application/json")
 				.defaultCookie("id", "123")
@@ -206,7 +228,7 @@ public class DefaultWebClientTests {
 	}
 
 	@Test
-	public void defaultHeaderAndCookieCopies() {
+	void defaultHeaderAndCookieCopies() {
 		WebClient client1 = this.builder
 				.defaultHeader("Accept", "application/json")
 				.defaultCookie("id", "123")
@@ -233,7 +255,7 @@ public class DefaultWebClientTests {
 	}
 
 	@Test
-	public void defaultRequest() {
+	void defaultRequest() {
 		ThreadLocal<String> context = new NamedThreadLocal<>("foo");
 
 		Map<String, Object> actual = new HashMap<>();
@@ -260,7 +282,7 @@ public class DefaultWebClientTests {
 	}
 
 	@Test
-	public void bodyObjectPublisher() {
+	void bodyObjectPublisher() {
 		Mono<Void> mono = Mono.empty();
 		WebClient client = this.builder.build();
 
@@ -269,7 +291,7 @@ public class DefaultWebClientTests {
 	}
 
 	@Test
-	public void mutateDoesCopy() {
+	void mutateDoesCopy() {
 		// First, build the clients
 
 		WebClient.Builder builder = WebClient.builder()
@@ -326,7 +348,7 @@ public class DefaultWebClientTests {
 	}
 
 	@Test
-	public void withStringAttribute() {
+	void withStringAttribute() {
 		Map<String, Object> actual = new HashMap<>();
 		ExchangeFilterFunction filter = (request, next) -> {
 			actual.putAll(request.attributes());
@@ -345,7 +367,7 @@ public class DefaultWebClientTests {
 	}
 
 	@Test
-	public void withNullAttribute() {
+	void withNullAttribute() {
 		Map<String, Object> actual = new HashMap<>();
 		ExchangeFilterFunction filter = (request, next) -> {
 			actual.putAll(request.attributes());
@@ -364,7 +386,7 @@ public class DefaultWebClientTests {
 	}
 
 	@Test
-	public void apply() {
+	void apply() {
 		WebClient client = this.builder
 				.apply(builder -> builder
 						.defaultHeader("Accept", "application/json")
@@ -379,7 +401,7 @@ public class DefaultWebClientTests {
 	}
 
 	@Test
-	public void switchToErrorOnEmptyClientResponseMono() {
+	void switchToErrorOnEmptyClientResponseMono() {
 		ExchangeFunction exchangeFunction = mock(ExchangeFunction.class);
 		given(exchangeFunction.exchange(any())).willReturn(Mono.empty());
 		WebClient client = WebClient.builder().baseUrl("/base").exchangeFunction(exchangeFunction).build();
@@ -389,13 +411,13 @@ public class DefaultWebClientTests {
 	}
 
 	@Test
-	public void shouldApplyFiltersAtSubscription() {
+	void shouldApplyFiltersAtSubscription() {
 		WebClient client = this.builder
 				.filter((request, next) ->
-					next.exchange(ClientRequest
-							.from(request)
-							.header("Custom", "value")
-							.build())
+						next.exchange(ClientRequest
+								.from(request)
+								.header("Custom", "value")
+								.build())
 				)
 				.build();
 
@@ -425,7 +447,7 @@ public class DefaultWebClientTests {
 
 	@Test // gh-23880
 	@SuppressWarnings("unchecked")
-	public void onStatusHandlersDefaultHandlerIsLast() {
+	void onStatusHandlersDefaultHandlerIsLast() {
 
 		ClientResponse response = ClientResponse.create(HttpStatus.BAD_REQUEST).build();
 		given(exchangeFunction.exchange(any())).willReturn(Mono.just(response));
@@ -465,6 +487,42 @@ public class DefaultWebClientTests {
 		testStatusHandlerForToEntity(spec.toEntityFlux(new ParameterizedTypeReference<String>() {}));
 		testStatusHandlerForToEntity(spec.toEntityFlux(BodyExtractors.toFlux(String.class)));
 	}
+
+	@Test
+	void recordsObservationForSuccessfulExchange() {
+		this.builder.build().get().uri("/resource/{id}", 42)
+				.retrieve().bodyToMono(Void.class).block(Duration.ofSeconds(10));
+		verifyAndGetRequest();
+
+		MeterRegistryAssert.assertThat(meterRegistry)
+				.hasTimerWithNameAndTags("http.client.requests", KeyValues.of("outcome", "SUCCESS",
+						"uri.template", "/resource/{id}"));
+	}
+
+	@Test
+	void recordsObservationForErrorExchange() {
+		ExchangeFunction exchangeFunction = mock(ExchangeFunction.class);
+		given(exchangeFunction.exchange(any())).willReturn(Mono.error(new IllegalStateException()));
+		WebClient client = WebClient.builder().observationRegistry(observationRegistry).exchangeFunction(exchangeFunction).build();
+		StepVerifier.create(client.get().uri("/path").retrieve().bodyToMono(Void.class))
+				.expectError(IllegalStateException.class)
+				.verify(Duration.ofSeconds(5));
+
+		MeterRegistryAssert.assertThat(meterRegistry)
+				.hasTimerWithNameAndTags("http.client.requests", KeyValues.of("exception", "IllegalStateException",
+						"status", "CLIENT_ERROR"));
+	}
+
+	@Test
+	void recordsObservationForCancelledExchange() {
+		StepVerifier.create(this.builder.build().get().uri("/path").retrieve().bodyToMono(Void.class))
+				.thenCancel()
+				.verify(Duration.ofSeconds(5));
+
+		MeterRegistryAssert.assertThat(meterRegistry)
+				.hasTimerWithNameAndTags("http.client.requests", KeyValues.of("outcome", "UNKNOWN", "status", "CLIENT_ERROR"));
+	}
+
 
 	private void testStatusHandlerForToEntity(Publisher<?> responsePublisher) {
 		StepVerifier.create(responsePublisher).expectError(WebClientResponseException.class).verify();

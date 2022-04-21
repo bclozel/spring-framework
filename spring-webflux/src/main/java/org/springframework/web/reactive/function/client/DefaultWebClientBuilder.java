@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.client.reactive.ClientHttpConnector;
@@ -97,6 +100,10 @@ final class DefaultWebClientBuilder implements WebClient.Builder {
 	@Nullable
 	private ExchangeFunction exchangeFunction;
 
+	private ObservationRegistry observationRegistry = ObservationRegistry.NOOP;
+
+	private Observation.KeyValuesProvider<WebClientObservationContext> keyValuesProvider = new WebClientKeyValuesProvider();
+
 
 	public DefaultWebClientBuilder() {
 	}
@@ -127,6 +134,8 @@ final class DefaultWebClientBuilder implements WebClient.Builder {
 		this.strategiesConfigurers = (other.strategiesConfigurers != null ?
 				new ArrayList<>(other.strategiesConfigurers) : null);
 		this.exchangeFunction = other.exchangeFunction;
+		this.observationRegistry = other.observationRegistry;
+		this.keyValuesProvider = other.keyValuesProvider;
 	}
 
 
@@ -251,6 +260,20 @@ final class DefaultWebClientBuilder implements WebClient.Builder {
 	}
 
 	@Override
+	public WebClient.Builder observationRegistry(ObservationRegistry observationRegistry) {
+		Assert.notNull(observationRegistry, "ObservationRegistry must not be null");
+		this.observationRegistry = observationRegistry;
+		return this;
+	}
+
+	@Override
+	public WebClient.Builder keyValuesProvider(Observation.KeyValuesProvider<WebClientObservationContext> keyValuesProvider) {
+		Assert.notNull(keyValuesProvider, "KeyValuesProvider must not be null");
+		this.keyValuesProvider = keyValuesProvider;
+		return this;
+	}
+
+	@Override
 	public WebClient.Builder apply(Consumer<WebClient.Builder> builderConsumer) {
 		builderConsumer.accept(this);
 		return this;
@@ -280,8 +303,8 @@ final class DefaultWebClientBuilder implements WebClient.Builder {
 		MultiValueMap<String, String> defaultCookies = copyDefaultCookies();
 
 		return new DefaultWebClient(filteredExchange, initUriBuilderFactory(),
-				defaultHeaders,
-				defaultCookies,
+				defaultHeaders, defaultCookies,
+				this.observationRegistry, this.keyValuesProvider,
 				this.defaultRequest, new DefaultWebClientBuilder(this));
 	}
 
