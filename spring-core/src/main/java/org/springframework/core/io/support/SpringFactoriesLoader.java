@@ -19,6 +19,7 @@ package org.springframework.core.io.support;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.util.ArrayList;
@@ -44,6 +45,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import org.springframework.core.KotlinDetector;
+import org.springframework.core.NativeDetector;
 import org.springframework.core.annotation.AnnotationAwareOrderComparator;
 import org.springframework.core.io.UrlResource;
 import org.springframework.core.log.LogMessage;
@@ -52,6 +54,8 @@ import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.ConcurrentReferenceHashMap;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 
@@ -87,6 +91,7 @@ import org.springframework.util.StringUtils;
  * @author Andy Wilkinson
  * @author Madhura Bhave
  * @author Phillip Webb
+ * @author Brian Clozel
  * @since 3.2
  */
 public class SpringFactoriesLoader {
@@ -97,6 +102,7 @@ public class SpringFactoriesLoader {
 	 */
 	public static final String FACTORIES_RESOURCE_LOCATION = "META-INF/spring.factories";
 
+
 	private static final ArgumentResolver NO_ARGUMENT_RESOLVER = null;
 
 	private static final FailureHandler NO_FAILURE_HANDLER = null;
@@ -104,6 +110,8 @@ public class SpringFactoriesLoader {
 	private static final FailureHandler THROWING_FAILURE_HANDLER = FailureHandler.throwing();
 
 	private static final Log logger = LogFactory.getLog(SpringFactoriesLoader.class);
+
+	static final String STATIC_SPRING_FACTORIES_CLASS_NAME = "org.springframework.core.io.support.SpringFactoriesLoader__SpringFactories";
 
 	static final Map<ClassLoader, Map<String, SpringFactoriesLoader>> cache = new ConcurrentReferenceHashMap<>();
 
@@ -113,6 +121,11 @@ public class SpringFactoriesLoader {
 
 	private final Map<String, List<String>> factories;
 
+	static {
+		if (NativeDetector.inNativeImage()) {
+			initializeStaticSpringFactories();
+		}
+	}
 
 	private SpringFactoriesLoader(@Nullable ClassLoader classLoader, String resourceLocation) {
 		this.classLoader = classLoader;
@@ -126,7 +139,7 @@ public class SpringFactoriesLoader {
 	}
 
 
-	private Map<String, List<String>> loadFactoriesResource(ClassLoader classLoader, String resourceLocation) {
+	Map<String, List<String>> loadFactoriesResource(ClassLoader classLoader, String resourceLocation) {
 		Map<String, List<String>> result = new LinkedHashMap<>();
 		try {
 			Enumeration<URL> urls = classLoader.getResources(resourceLocation);
@@ -238,7 +251,7 @@ public class SpringFactoriesLoader {
 		return result;
 	}
 
-	private List<String> loadFactoryNames(Class<?> factoryType) {
+	protected List<String> loadFactoryNames(Class<?> factoryType) {
 		return this.factories.getOrDefault(factoryType.getName(), Collections.emptyList());
 	}
 
@@ -358,6 +371,35 @@ public class SpringFactoriesLoader {
 
 
 	/**
+	 * Return a {@link FactoriesRegistration} instance for registering Spring factories
+	 * in a static fashion, skipping the loading of resources and reflective instantiation.
+	 * Factory implementations will be registered for the given resource location
+	 * and class loader.
+	 * <p>This is intended for internal usage during the AOT processing of Spring factories.
+	 * @param classLoader the ClassLoader to use for loading resources; can be
+	 * {@code null} to use the default
+	 * @param resourceLocation the factories files location to register factories against
+	 * @return a {@link FactoriesRegistration} instance for registering factories
+	 * @see StaticSpringFactoriesGenerator
+	 */
+	static FactoriesRegistration staticFactories(@Nullable ClassLoader classLoader, String resourceLocation) {
+		return new FactoriesRegistration(classLoader, resourceLocation);
+	}
+
+	static void initializeStaticSpringFactories() {
+		try {
+			Class<?> staticStringFactories = ClassUtils.forName(STATIC_SPRING_FACTORIES_CLASS_NAME, null);
+			Method initSpringFactories = ReflectionUtils.findMethod(staticStringFactories, "initialize", ClassLoader.class);
+			if (initSpringFactories != null) {
+				ReflectionUtils.invokeMethod(initSpringFactories, null, (ClassLoader) null);
+			}
+		}
+		catch (ClassNotFoundException e) {
+			logger.trace(LogMessage.format(STATIC_SPRING_FACTORIES_CLASS_NAME + " could not be found"));
+		}
+	}
+
+	/**
 	 * Internal instantiator used to create the factory instance.
 	 * @param <T> the instance implementation type
 	 */
@@ -395,7 +437,7 @@ public class SpringFactoriesLoader {
 		}
 
 		@Nullable
-		private static Constructor<?> findConstructor(Class<?> factoryImplementationClass) {
+		static Constructor<?> findConstructor(Class<?> factoryImplementationClass) {
 			// Same algorithm as BeanUtils.getResolvableConstructor
 			Constructor<?> constructor = findPrimaryKotlinConstructor(factoryImplementationClass);
 			constructor = (constructor != null ? constructor :
@@ -674,6 +716,133 @@ public class SpringFactoriesLoader {
 			};
 		}
 
+	}
+
+	/**
+	 * Assists with the creation of a programmatically generated {@link SpringFactoriesLoader} instance
+	 * and its {@link #register() registration} in the static cache.
+	 */
+	static final class FactoriesRegistration {
+
+		private final @Nullable ClassLoader classLoader;
+
+		private final String resourceLocation;
+
+		private final MultiValueMap<Class<?>, StaticSpringFactoriesLoader.AotFactoryInstantiator<?>> staticFactories = new LinkedMultiValueMap<>();
+
+		private FactoriesRegistration(@Nullable ClassLoader classLoader, String resourceLocation) {
+			this.classLoader = classLoader;
+			this.resourceLocation = resourceLocation;
+		}
+
+		/**
+		 * Add a factory implementation for the given factory type.
+		 * @param <T> the factory type
+		 * @param factoryType the interface or abstract class representing the factory
+		 * @param factoryImplementationName the canonical class name of the factory implementation
+		 * @param instantiateFunction a function for instantiating the factory implementation using an {@link ArgumentResolver}
+		 * @return the current registration, to allow adding more factories and register the resulting instance
+		 */
+		<T> FactoriesRegistration addFactory(Class<T> factoryType, String factoryImplementationName,
+				Function<ArgumentResolver, T> instantiateFunction) {
+			this.staticFactories.add(factoryType, new StaticSpringFactoriesLoader.AotFactoryInstantiator<>(factoryImplementationName, instantiateFunction));
+			return this;
+		}
+
+		/**
+		 * Add a factory implementation for the given factory type.
+		 * @param <T> the factory type
+		 * @param factoryType the interface or abstract class representing the factory
+		 * @param factoryImplementationName the canonical class name of the factory implementation
+		 * @param factorySupplier a supplier that provides the factory implementation instance
+		 * @return the current registration, to allow adding more factories and register the resulting instance
+		 */
+		<T> FactoriesRegistration addFactory(Class<T> factoryType, String factoryImplementationName,
+				Supplier<T> factorySupplier) {
+			return addFactory(factoryType, factoryImplementationName, argumentResolver -> factorySupplier.get());
+		}
+
+		/**
+		 * Create a {@link SpringFactoriesLoader} instance and register it with the static cache.
+		 * The cached instance will then be used for {@link #load(Class) loading factories at runtime}.
+		 * @throws IllegalArgumentException if there was an instance already cached for the considered classloader and resource location
+		 */
+		void register() {
+			StaticSpringFactoriesLoader staticSpringFactoriesLoader = new StaticSpringFactoriesLoader(this.classLoader, this.resourceLocation, this.staticFactories);
+			cacheSpringFactoriesLoader(staticSpringFactoriesLoader);
+		}
+
+		private void cacheSpringFactoriesLoader(StaticSpringFactoriesLoader staticSpringFactoriesLoader) {
+			Assert.hasText(this.resourceLocation, "'resourceLocation' must not be empty");
+			Map<String, SpringFactoriesLoader> loaders = SpringFactoriesLoader.cache.get(this.classLoader);
+			if (loaders == null) {
+				loaders = new ConcurrentReferenceHashMap<>();
+				SpringFactoriesLoader.cache.put(this.classLoader, loaders);
+			}
+			Assert.isNull(loaders.get(this.resourceLocation), "a SpringFactoryLoader instance is already cached for location: " + this.resourceLocation);
+			loaders.put(this.resourceLocation, staticSpringFactoriesLoader);
+			logger.trace(LogMessage.format("AOT SpringFactoriesLoader registered for location [%s]", this.resourceLocation));
+		}
+	}
+
+	/**
+	 * Private extension of the {@link SpringFactoriesLoader} designed for programmatic registration of factories.
+	 * <p>Instead of loading resources and reflectively instantiating factories at runtime, this
+	 * implementation variant allows for programmatic registration of factories through {@code Supplier}-like
+	 * instantiators.
+	 */
+	private static final class StaticSpringFactoriesLoader extends SpringFactoriesLoader {
+
+		private final MultiValueMap<Class<?>, AotFactoryInstantiator<?>> aotFactories;
+
+		private StaticSpringFactoriesLoader(@Nullable ClassLoader classLoader, String resourceLocation,
+				MultiValueMap<Class<?>, AotFactoryInstantiator<?>> aotFactories) {
+			super(classLoader, Collections.emptyMap());
+			this.aotFactories = aotFactories;
+		}
+
+		@Override
+		@SuppressWarnings("unchecked")
+		public <T> List<T> load(Class<T> factoryType, @Nullable ArgumentResolver argumentResolver, @Nullable FailureHandler failureHandler) {
+			List<T> factories = new ArrayList<>();
+			if (this.aotFactories.containsKey(factoryType)) {
+				for (AotFactoryInstantiator<?> instantiator : this.aotFactories.get(factoryType)) {
+					T factory = instantiateFactory(factoryType, (AotFactoryInstantiator<T>) instantiator, argumentResolver, failureHandler);
+					if (factory != null) {
+						factories.add(factory);
+					}
+				}
+			}
+			return factories;
+		}
+
+		@Override
+		protected List<String> loadFactoryNames(Class<?> factoryType) {
+			return this.aotFactories.get(factoryType).stream().map(AotFactoryInstantiator::name).toList();
+		}
+
+		@Nullable
+		private <T> T instantiateFactory(Class<T> factoryType, AotFactoryInstantiator<T> instantiator, @Nullable ArgumentResolver argumentResolver,
+				@Nullable FailureHandler failureHandler) {
+			try {
+				return instantiator.instantiate(argumentResolver);
+			}
+			catch (Throwable ex) {
+				if (failureHandler == null) {
+					failureHandler = FailureHandler.throwing();
+				}
+				failureHandler.handleFailure(factoryType, instantiator.name(), ex);
+			}
+			return null;
+		}
+
+		private record AotFactoryInstantiator<T>(String name, Function<ArgumentResolver, T> instantiateFunction) {
+
+			T instantiate(@Nullable ArgumentResolver argumentResolver) {
+				return this.instantiateFunction.apply(argumentResolver);
+			}
+
+		}
 	}
 
 }

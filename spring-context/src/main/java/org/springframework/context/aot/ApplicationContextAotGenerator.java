@@ -21,6 +21,7 @@ import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.GenericApplicationContext;
+import org.springframework.core.io.support.StaticSpringFactoriesGenerator;
 import org.springframework.javapoet.ClassName;
 import org.springframework.javapoet.JavaFile;
 
@@ -51,6 +52,7 @@ public class ApplicationContextAotGenerator {
 		applicationContext.refreshForAotProcessing();
 		DefaultListableBeanFactory beanFactory = applicationContext
 				.getDefaultListableBeanFactory();
+		new StaticSpringFactoriesGenerator(null).generateStaticSpringFactories(generationContext);
 		ApplicationContextInitializationCodeGenerator codeGenerator = new ApplicationContextInitializationCodeGenerator();
 		new BeanFactoryInitializationContributions(beanFactory).applyTo(generationContext,
 				codeGenerator);

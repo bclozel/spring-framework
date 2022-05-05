@@ -157,7 +157,7 @@ class ApplicationContextAotGeneratorTests {
 			GenericApplicationContext freshApplicationContext = toFreshApplicationContext(
 					initializer);
 			assertThat(freshApplicationContext.getBeanDefinitionNames()).isEmpty();
-			assertThat(compiled.getSourceFile()).contains(
+			assertThat(compiled.getSourceFile(".*TestInitializer")).contains(
 					"beanFactory.setAutowireCandidateResolver(new ContextAnnotationAutowireCandidateResolver())");
 		});
 	}
