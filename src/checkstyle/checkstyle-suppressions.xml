@@ -41,6 +41,9 @@
 	<!-- spring-core-test -->
 	<suppress files="CompileWithTargetClassAccess" checks="IllegalImport" id="bannedJUnitJupiterImports" />
 
+	<!-- spring-runtimehints-agent - main and test -->
+	<suppress files="org[\\/]springframework[\\/]aot[\\/]test[\\/]agent[\\/].+" checks="IllegalImport" id="bannedJUnitJupiterImports" />
+
 	<!-- spring-expression -->
 	<suppress files="ExpressionException" checks="MutableException"/>
 	<suppress files="SpelMessage" checks="JavadocVariable|JavadocStyle"/>
@@ -67,6 +70,9 @@
 	<suppress files="StompHeaders" checks="JavadocVariable"/>
 	<suppress files="org[\\/]springframework[\\/]messaging[\\/]handler[\\/]annotation[\\/]ValueConstants" checks="InterfaceIsType"/>
 	<suppress files="src[\\/]test[\\/]java[\\/]org[\\/]springframework[\\/]messaging[\\/]protobuf[\\/].*" checks=".*"/>
+
+	<!-- spring-runtimehints-agent -->
+	<suppress files="src[\\/]main[\\/]java[\\/]org[\\/]springframework[\\/]aot[\\/]test[\\/]junit[\\/].*" checks="IllegalImport" id="bannedJUnitJupiterImports" />
 
 	<!-- spring-orm -->
 	<suppress files="jpa[\\/]vendor[\\/]Database" checks="JavadocVariable|JavadocStyle"/>

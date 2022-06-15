@@ -33,3 +33,23 @@ current working version with. You can generate the reports for all modules or a 
 ```      
 
 The reports are located under `build/reports/api-diff/$OLDVERSION_to_$NEWVERSION/`.
+                                                                                       
+
+### RuntimeHints Java Agent
+
+The `spring-runtimehints-agent` project module contributes a Java agent that configures the 
+`RuntimeHintsAgent` as a Java agent in test tasks.
+
+By default, the agent will instrument all classes located in the `"org.springframework"` package, as they are loaded.
+
+```groovy
+plugins {
+	id 'org.springframework.build.runtimehints-agent'
+}
+
+// You can configure the agent to include and exclude packages from the instrumentation process.
+runtimeHints {
+	includedPackages = ["org.springframework", "io.spring"]
+	excludedPackages = ["org.example"]
+}
+```
