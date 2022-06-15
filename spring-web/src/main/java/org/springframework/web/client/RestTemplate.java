@@ -28,6 +28,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
+
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.SpringProperties;
 import org.springframework.http.HttpEntity;
@@ -37,6 +40,9 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.ClientHttpKeyValuesProvider;
+import org.springframework.http.client.ClientHttpObservation;
+import org.springframework.http.client.ClientHttpObservationContext;
 import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.ClientHttpResponse;
@@ -141,6 +147,10 @@ public class RestTemplate extends InterceptingHttpAccessor implements RestOperat
 	private UriTemplateHandler uriTemplateHandler;
 
 	private final ResponseExtractor<HttpHeaders> headersExtractor = new HeadersExtractor();
+
+	private ObservationRegistry observationRegistry = ObservationRegistry.NOOP;
+
+	private Observation.KeyValuesProvider<ClientHttpObservationContext> keyValuesProvider = new ClientHttpKeyValuesProvider();
 
 
 	/**
@@ -323,6 +333,29 @@ public class RestTemplate extends InterceptingHttpAccessor implements RestOperat
 		return this.uriTemplateHandler;
 	}
 
+	/**
+	 * Configure an {@link ObservationRegistry} for collecting spans and metrics
+	 * for request execution. By default, {@link Observation} are No-Ops.
+	 * @param observationRegistry the observation registry to use
+	 * @since 6.0
+	 */
+	public void setObservationRegistry(ObservationRegistry observationRegistry) {
+		Assert.notNull(observationRegistry, "ObservationRegistry must not be null");
+		this.observationRegistry = observationRegistry;
+	}
+
+	/**
+	 * Configure an {@link Observation.KeyValuesProvider} for extracting low and
+	 * high cardinality KeyValues to be attached to the {@link Observation observations}.
+	 * If none set, the {@link ClientHttpKeyValuesProvider default KeyValues provider} will be used.
+	 * @param keyValuesProvider the KeyValues provider to use
+	 * @since 6.0
+	 * @see #setObservationRegistry(ObservationRegistry)
+	 */
+	public void setKeyValuesProvider(Observation.KeyValuesProvider<ClientHttpObservationContext> keyValuesProvider) {
+		Assert.notNull(keyValuesProvider, "KeyValuesProvider must not be null");
+		this.keyValuesProvider = keyValuesProvider;
+	}
 
 	// GET
 
@@ -658,7 +691,7 @@ public class RestTemplate extends InterceptingHttpAccessor implements RestOperat
 
 		RequestCallback requestCallback = httpEntityCallback(entity, responseType);
 		ResponseExtractor<ResponseEntity<T>> responseExtractor = responseEntityExtractor(responseType);
-		return nonNull(doExecute(resolveUrl(entity), entity.getMethod(), requestCallback, responseExtractor));
+		return nonNull(doExecute(createUriProvider(entity), entity.getMethod(), requestCallback, responseExtractor));
 	}
 
 	@Override
@@ -668,24 +701,16 @@ public class RestTemplate extends InterceptingHttpAccessor implements RestOperat
 		Type type = responseType.getType();
 		RequestCallback requestCallback = httpEntityCallback(entity, type);
 		ResponseExtractor<ResponseEntity<T>> responseExtractor = responseEntityExtractor(type);
-		return nonNull(doExecute(resolveUrl(entity), entity.getMethod(), requestCallback, responseExtractor));
+		return nonNull(doExecute(createUriProvider(entity), entity.getMethod(), requestCallback, responseExtractor));
 	}
 
-	private URI resolveUrl(RequestEntity<?> entity) {
-		if (entity instanceof RequestEntity.UriTemplateRequestEntity) {
-			RequestEntity.UriTemplateRequestEntity<?> ext = (RequestEntity.UriTemplateRequestEntity<?>) entity;
-			if (ext.getVars() != null) {
-				return this.uriTemplateHandler.expand(ext.getUriTemplate(), ext.getVars());
-			}
-			else if (ext.getVarsMap() != null) {
-				return this.uriTemplateHandler.expand(ext.getUriTemplate(), ext.getVarsMap());
-			}
-			else {
-				throw new IllegalStateException("No variables specified for URI template: " + ext.getUriTemplate());
-			}
+	@SuppressWarnings({"unchecked", "rawtypes"})
+	private UriProvider createUriProvider(RequestEntity<?> entity) {
+		if (entity instanceof RequestEntity.UriTemplateRequestEntity templated) {
+			return new UriProvider(templated.getUriTemplate(), templated.getVars(), templated.getVarsMap());
 		}
 		else {
-			return entity.getUrl();
+			return new UriProvider(entity.getUrl());
 		}
 	}
 
@@ -708,8 +733,7 @@ public class RestTemplate extends InterceptingHttpAccessor implements RestOperat
 	public <T> T execute(String url, HttpMethod method, @Nullable RequestCallback requestCallback,
 			@Nullable ResponseExtractor<T> responseExtractor, Object... uriVariables) throws RestClientException {
 
-		URI expanded = getUriTemplateHandler().expand(url, uriVariables);
-		return doExecute(expanded, method, requestCallback, responseExtractor);
+		return doExecute(new UriProvider(url, uriVariables, null), method, requestCallback, responseExtractor);
 	}
 
 	/**
@@ -729,8 +753,7 @@ public class RestTemplate extends InterceptingHttpAccessor implements RestOperat
 			@Nullable ResponseExtractor<T> responseExtractor, Map<String, ?> uriVariables)
 			throws RestClientException {
 
-		URI expanded = getUriTemplateHandler().expand(url, uriVariables);
-		return doExecute(expanded, method, requestCallback, responseExtractor);
+		return doExecute(new UriProvider(url, null, uriVariables), method, requestCallback, responseExtractor);
 	}
 
 	/**
@@ -749,32 +772,40 @@ public class RestTemplate extends InterceptingHttpAccessor implements RestOperat
 	public <T> T execute(URI url, HttpMethod method, @Nullable RequestCallback requestCallback,
 			@Nullable ResponseExtractor<T> responseExtractor) throws RestClientException {
 
-		return doExecute(url, method, requestCallback, responseExtractor);
+		return doExecute(new UriProvider(url), method, requestCallback, responseExtractor);
 	}
 
 	/**
 	 * Execute the given method on the provided URI.
 	 * <p>The {@link ClientHttpRequest} is processed using the {@link RequestCallback};
 	 * the response with the {@link ResponseExtractor}.
-	 * @param url the fully-expanded URL to connect to
+	 * @param uriProvider a provider for the fully-expanded URL to connect to
 	 * @param method the HTTP method to execute (GET, POST, etc.)
 	 * @param requestCallback object that prepares the request (can be {@code null})
 	 * @param responseExtractor object that extracts the return value from the response (can be {@code null})
 	 * @return an arbitrary object, as returned by the {@link ResponseExtractor}
 	 */
 	@Nullable
-	protected <T> T doExecute(URI url, @Nullable HttpMethod method, @Nullable RequestCallback requestCallback,
+	@SuppressWarnings("try")
+	protected <T> T doExecute(UriProvider uriProvider, @Nullable HttpMethod method, @Nullable RequestCallback requestCallback,
 			@Nullable ResponseExtractor<T> responseExtractor) throws RestClientException {
 
-		Assert.notNull(url, "URI is required");
+		Assert.notNull(uriProvider, "UriProvider is required");
 		Assert.notNull(method, "HttpMethod is required");
+		ClientHttpObservationContext observationContext = new ClientHttpObservationContext();
+		Observation observation = Observation.createNotStarted(ClientHttpObservation.HTTP_REQUEST.getName(), observationContext, this.observationRegistry)
+				.keyValuesProvider(this.keyValuesProvider).start();
+		observationContext.setUriTemplate(uriProvider.getUriTemplate());
+		URI url = uriProvider.getUrl();
 		ClientHttpResponse response = null;
-		try {
+		try (Observation.Scope scope = observation.openScope()) {
 			ClientHttpRequest request = createRequest(url, method);
+			observationContext.setRequest(request);
 			if (requestCallback != null) {
 				requestCallback.doWithRequest(request);
 			}
 			response = request.execute();
+			observationContext.setResponse(response);
 			handleResponse(url, method, response);
 			return (responseExtractor != null ? responseExtractor.extractData(response) : null);
 		}
@@ -782,13 +813,20 @@ public class RestTemplate extends InterceptingHttpAccessor implements RestOperat
 			String resource = url.toString();
 			String query = url.getRawQuery();
 			resource = (query != null ? resource.substring(0, resource.indexOf('?')) : resource);
-			throw new ResourceAccessException("I/O error on " + method.name() +
+			ResourceAccessException exception = new ResourceAccessException("I/O error on " + method.name() +
 					" request for \"" + resource + "\": " + ex.getMessage(), ex);
+			observation.error(exception);
+			throw exception;
+		}
+		catch (RestClientException exc) {
+			observation.error(exc);
+			throw exc;
 		}
 		finally {
 			if (response != null) {
 				response.close();
 			}
+			observation.stop();
 		}
 	}
 
@@ -966,7 +1004,7 @@ public class RestTemplate extends InterceptingHttpAccessor implements RestOperat
 			else {
 				Class<?> requestBodyClass = requestBody.getClass();
 				Type requestBodyType = (this.requestEntity instanceof RequestEntity ?
-						((RequestEntity<?>)this.requestEntity).getType() : requestBodyClass);
+						((RequestEntity<?>) this.requestEntity).getType() : requestBodyClass);
 				HttpHeaders httpHeaders = httpRequest.getHeaders();
 				HttpHeaders requestHeaders = this.requestEntity.getHeaders();
 				MediaType requestContentType = requestHeaders.getContentType();
@@ -1052,6 +1090,46 @@ public class RestTemplate extends InterceptingHttpAccessor implements RestOperat
 		@Override
 		public HttpHeaders extractData(ClientHttpResponse response) {
 			return response.getHeaders();
+		}
+	}
+
+	/**
+	 * Provider that holds the request URI and optionally the URI template that was used to create it.
+	 */
+	protected class UriProvider {
+
+		private final URI url;
+
+		@Nullable
+		private final String uriTemplate;
+
+		UriProvider(URI uri) {
+			this.url = uri;
+			this.uriTemplate = null;
+		}
+
+		UriProvider(String uriTemplate, @Nullable Object[] uriVars, @Nullable Map<String, ?> uriVarsMap) {
+			if (uriVars != null) {
+				this.url = uriTemplateHandler.expand(uriTemplate, uriVars);
+				this.uriTemplate = uriTemplate;
+			}
+			else if (uriVarsMap != null) {
+				this.url = uriTemplateHandler.expand(uriTemplate, uriVarsMap);
+				this.uriTemplate = uriTemplate;
+			}
+			else {
+				this.url = uriTemplateHandler.expand(uriTemplate, Collections.emptyMap());
+				this.uriTemplate = null;
+			}
+		}
+
+		@Nullable
+		String getUriTemplate() {
+			return this.uriTemplate;
+		}
+
+		URI getUrl() {
+			return this.url;
 		}
 	}
 

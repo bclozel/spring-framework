@@ -36,6 +36,7 @@ dependencies {
 	testImplementation("jakarta.validation:jakarta.validation-api")
 	testImplementation("io.reactivex.rxjava3:rxjava")
 	testImplementation("io.projectreactor:reactor-test")
+	testImplementation("io.micrometer:micrometer-test")
 	testImplementation("io.undertow:undertow-core")
 	testImplementation("org.apache.tomcat.embed:tomcat-embed-core")
 	testImplementation("org.apache.tomcat:tomcat-util")

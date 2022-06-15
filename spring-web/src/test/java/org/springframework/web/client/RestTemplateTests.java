@@ -28,9 +28,15 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.micrometer.common.KeyValues;
+import io.micrometer.core.instrument.observation.TimerObservationHandler;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import io.micrometer.core.tck.MeterRegistryAssert;
+import io.micrometer.observation.ObservationRegistry;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -82,6 +88,10 @@ import static org.springframework.http.MediaType.parseMediaType;
 @SuppressWarnings("unchecked")
 class RestTemplateTests {
 
+	private static final SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+
+	private static final ObservationRegistry observationRegistry = ObservationRegistry.create();
+
 	private final ClientHttpRequestFactory requestFactory = mock(ClientHttpRequestFactory.class);
 
 	private final ClientHttpRequest request = mock(ClientHttpRequest.class);
@@ -95,11 +105,18 @@ class RestTemplateTests {
 
 	private final RestTemplate template = new RestTemplate(Collections.singletonList(converter));
 
+	@BeforeAll
+	static void setupAll() {
+		observationRegistry.observationConfig().observationHandler(new TimerObservationHandler(meterRegistry));
+	}
+
 
 	@BeforeEach
-	void setup() {
-		template.setRequestFactory(requestFactory);
-		template.setErrorHandler(errorHandler);
+	void setupEach() {
+		meterRegistry.clear();
+		this.template.setRequestFactory(this.requestFactory);
+		this.template.setErrorHandler(this.errorHandler);
+		this.template.setObservationRegistry(observationRegistry);
 	}
 
 	@Test
@@ -130,6 +147,8 @@ class RestTemplateTests {
 		template.execute("https://example.com/hotels/{hotel}/bookings/{booking}", GET,
 				null, null, "42", "21");
 
+		MeterRegistryAssert.assertThat(meterRegistry).hasTimerWithNameAndTags("http.client.requests",
+				KeyValues.of("uri.template", "https://example.com/hotels/{hotel}/bookings/{booking}"));
 		verify(response).close();
 	}
 
@@ -139,18 +158,19 @@ class RestTemplateTests {
 		mockResponseStatus(HttpStatus.OK);
 
 		template.execute("https://example.com/{first}-{last}", GET, null, null, null, "foo");
-
 		verify(response).close();
 	}
 
 	@Test
 	void mapTemplateVariables() throws Exception {
-		mockSentRequest(GET, "https://example.com/hotels/42/bookings/42");
+		mockSentRequest(GET, "https://example.com/hotels/42/bookings/21");
 		mockResponseStatus(HttpStatus.OK);
 
-		Map<String, String> vars = Collections.singletonMap("hotel", "42");
-		template.execute("https://example.com/hotels/{hotel}/bookings/{hotel}", GET, null, null, vars);
+		Map<String, String> vars = Map.of("hotel", "42", "booking", "21");
+		template.execute("https://example.com/hotels/{hotel}/bookings/{booking}", GET, null, null, vars);
 
+		MeterRegistryAssert.assertThat(meterRegistry).hasTimerWithNameAndTags("http.client.requests",
+				KeyValues.of("uri.template", "https://example.com/hotels/{hotel}/bookings/{booking}"));
 		verify(response).close();
 	}
 
@@ -189,6 +209,8 @@ class RestTemplateTests {
 		assertThatExceptionOfType(HttpServerErrorException.class).isThrownBy(() ->
 				template.execute(url, GET, null, null));
 
+		MeterRegistryAssert.assertThat(meterRegistry).hasTimerWithNameAndTags("http.client.requests",
+				KeyValues.of("outcome", "SERVER_ERROR"));
 		verify(response).close();
 	}
 
@@ -204,6 +226,8 @@ class RestTemplateTests {
 		String result = template.getForObject("https://example.com", String.class);
 		assertThat(result).as("Invalid GET result").isEqualTo(expected);
 		assertThat(requestHeaders.getFirst("Accept")).as("Invalid Accept header").isEqualTo(MediaType.TEXT_PLAIN_VALUE);
+		MeterRegistryAssert.assertThat(meterRegistry)
+				.hasTimerWithNameAndTags("http.client.requests", KeyValues.of("outcome", "SUCCESS"));
 
 		verify(response).close();
 	}
@@ -224,6 +248,8 @@ class RestTemplateTests {
 		assertThatExceptionOfType(RestClientException.class).isThrownBy(() ->
 				template.getForObject("https://example.com/{p}", String.class, "resource"));
 
+		MeterRegistryAssert.assertThat(meterRegistry)
+				.hasTimerWithNameAndTags("http.client.requests", KeyValues.of("exception", "UnknownContentTypeException"));
 		verify(response).close();
 	}
 
@@ -483,7 +509,8 @@ class RestTemplateTests {
 		verify(response).close();
 	}
 
-	@Test // gh-23740
+	@Test
+		// gh-23740
 	void headerAcceptAllOnPut() throws Exception {
 		try (MockWebServer server = new MockWebServer()) {
 			server.enqueue(new MockResponse().setResponseCode(500).setBody("internal server error"));
@@ -563,7 +590,8 @@ class RestTemplateTests {
 		verify(response).close();
 	}
 
-	@Test // gh-23740
+	@Test
+		// gh-23740
 	void headerAcceptAllOnDelete() throws Exception {
 		try (MockWebServer server = new MockWebServer()) {
 			server.enqueue(new MockResponse().setResponseCode(500).setBody("internal server error"));
@@ -589,7 +617,8 @@ class RestTemplateTests {
 		verify(response).close();
 	}
 
-	@Test  // SPR-9325, SPR-13860
+	@Test
+		// SPR-9325, SPR-13860
 	void ioException() throws Exception {
 		String url = "https://example.com/resource?access_token=123";
 		mockSentRequest(GET, url);
@@ -599,9 +628,12 @@ class RestTemplateTests {
 		assertThatExceptionOfType(ResourceAccessException.class).isThrownBy(() ->
 				template.getForObject(url, String.class))
 			.withMessage("I/O error on GET request for \"https://example.com/resource\": Socket failure");
+		MeterRegistryAssert.assertThat(meterRegistry)
+				.hasTimerWithNameAndTags("http.client.requests", KeyValues.of("outcome", "UNKNOWN"));
 	}
 
-	@Test  // SPR-15900
+	@Test
+		// SPR-15900
 	void ioExceptionWithEmptyQueryString() throws Exception {
 		// https://example.com/resource?
 		URI uri = new URI("https", "example.com", "/resource", "", null);
@@ -609,12 +641,16 @@ class RestTemplateTests {
 		given(converter.canRead(String.class, null)).willReturn(true);
 		given(converter.getSupportedMediaTypes()).willReturn(Collections.singletonList(parseMediaType("foo/bar")));
 		given(requestFactory.createRequest(uri, GET)).willReturn(request);
+		given(request.getMethod()).willReturn(GET);
+		given(request.getURI()).willReturn(uri);
 		given(request.getHeaders()).willReturn(new HttpHeaders());
 		given(request.execute()).willThrow(new IOException("Socket failure"));
 
 		assertThatExceptionOfType(ResourceAccessException.class).isThrownBy(() ->
 				template.getForObject(uri, String.class))
 			.withMessage("I/O error on GET request for \"https://example.com/resource\": Socket failure");
+		MeterRegistryAssert.assertThat(meterRegistry)
+				.hasTimerWithNameAndTags("http.client.requests", KeyValues.of("outcome", "UNKNOWN"));
 	}
 
 	@Test
@@ -644,7 +680,8 @@ class RestTemplateTests {
 	void exchangeParameterizedType() throws Exception {
 		GenericHttpMessageConverter converter = mock(GenericHttpMessageConverter.class);
 		template.setMessageConverters(Collections.<HttpMessageConverter<?>>singletonList(converter));
-		ParameterizedTypeReference<List<Integer>> intList = new ParameterizedTypeReference<>() {};
+		ParameterizedTypeReference<List<Integer>> intList = new ParameterizedTypeReference<>() {
+		};
 		given(converter.canRead(intList.getType(), null, null)).willReturn(true);
 		given(converter.getSupportedMediaTypes(any())).willReturn(Collections.singletonList(MediaType.TEXT_PLAIN));
 		given(converter.canWrite(String.class, String.class, null)).willReturn(true);
@@ -674,7 +711,8 @@ class RestTemplateTests {
 		verify(response).close();
 	}
 
-	@Test  // SPR-15066
+	@Test
+		// SPR-15066
 	void requestInterceptorCanAddExistingHeaderValueWithoutBody() throws Exception {
 		ClientHttpRequestInterceptor interceptor = (request, body, execution) -> {
 			request.getHeaders().add("MyHeader", "MyInterceptorValue");
@@ -695,7 +733,8 @@ class RestTemplateTests {
 		verify(response).close();
 	}
 
-	@Test  // SPR-15066
+	@Test
+		// SPR-15066
 	void requestInterceptorCanAddExistingHeaderValueWithBody() throws Exception {
 		ClientHttpRequestInterceptor interceptor = (request, body, execution) -> {
 			request.getHeaders().add("MyHeader", "MyInterceptorValue");
@@ -722,7 +761,7 @@ class RestTemplateTests {
 	@Test
 	void clientHttpRequestInitializerAndRequestInterceptorAreBothApplied() throws Exception {
 		ClientHttpRequestInitializer initializer = request ->
-			request.getHeaders().add("MyHeader", "MyInitializerValue");
+				request.getHeaders().add("MyHeader", "MyInitializerValue");
 		ClientHttpRequestInterceptor interceptor = (request, body, execution) -> {
 			request.getHeaders().add("MyHeader", "MyInterceptorValue");
 			return execution.execute(request, body);
@@ -752,6 +791,8 @@ class RestTemplateTests {
 	private void mockSentRequest(HttpMethod method, String uri, HttpHeaders requestHeaders) throws Exception {
 		given(requestFactory.createRequest(new URI(uri), method)).willReturn(request);
 		given(request.getHeaders()).willReturn(requestHeaders);
+		given(request.getMethod()).willReturn(method);
+		given(request.getURI()).willReturn(URI.create(uri));
 	}
 
 	@SuppressWarnings("deprecation")
