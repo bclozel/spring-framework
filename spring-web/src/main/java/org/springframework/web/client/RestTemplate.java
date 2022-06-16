@@ -21,6 +21,7 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +31,9 @@ import java.util.stream.Stream;
 
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
+import io.micrometer.observation.transport.http.HttpClientRequest;
+import io.micrometer.observation.transport.http.HttpClientResponse;
+import io.micrometer.observation.transport.http.context.HttpClientContext;
 
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.SpringProperties;
@@ -150,7 +154,7 @@ public class RestTemplate extends InterceptingHttpAccessor implements RestOperat
 
 	private ObservationRegistry observationRegistry = ObservationRegistry.NOOP;
 
-	private Observation.KeyValuesProvider<ClientHttpObservationContext> keyValuesProvider = new ClientHttpKeyValuesProvider();
+	private Observation.KeyValuesProvider<HttpClientContext> keyValuesProvider = new ClientHttpKeyValuesProvider();
 
 
 	/**
@@ -352,7 +356,7 @@ public class RestTemplate extends InterceptingHttpAccessor implements RestOperat
 	 * @since 6.0
 	 * @see #setObservationRegistry(ObservationRegistry)
 	 */
-	public void setKeyValuesProvider(Observation.KeyValuesProvider<ClientHttpObservationContext> keyValuesProvider) {
+	public void setKeyValuesProvider(Observation.KeyValuesProvider<HttpClientContext> keyValuesProvider) {
 		Assert.notNull(keyValuesProvider, "KeyValuesProvider must not be null");
 		this.keyValuesProvider = keyValuesProvider;
 	}
@@ -792,20 +796,22 @@ public class RestTemplate extends InterceptingHttpAccessor implements RestOperat
 
 		Assert.notNull(uriProvider, "UriProvider is required");
 		Assert.notNull(method, "HttpMethod is required");
-		ClientHttpObservationContext observationContext = new ClientHttpObservationContext();
+		HttpClientContext observationContext = new HttpClientContext();
 		Observation observation = Observation.createNotStarted(ClientHttpObservation.HTTP_REQUEST.getName(), observationContext, this.observationRegistry)
 				.keyValuesProvider(this.keyValuesProvider).start();
-		observationContext.setUriTemplate(uriProvider.getUriTemplate());
+		//observationContext.setUriTemplate(uriProvider.getUriTemplate());
 		URI url = uriProvider.getUrl();
 		ClientHttpResponse response = null;
 		try (Observation.Scope scope = observation.openScope()) {
 			ClientHttpRequest request = createRequest(url, method);
-			observationContext.setRequest(request);
+			ObservableRequest observableRequest = new ObservableRequest(request);
+			observableRequest.setRoute(uriProvider.getUriTemplate());
+			observationContext.setRequest(observableRequest);
 			if (requestCallback != null) {
 				requestCallback.doWithRequest(request);
 			}
 			response = request.execute();
-			observationContext.setResponse(response);
+			observationContext.setResponse(new ObservableResponse(response));
 			handleResponse(url, method, response);
 			return (responseExtractor != null ? responseExtractor.extractData(response) : null);
 		}
@@ -1130,6 +1136,90 @@ public class RestTemplate extends InterceptingHttpAccessor implements RestOperat
 
 		URI getUrl() {
 			return this.url;
+		}
+	}
+
+	public static class ObservableRequest implements HttpClientRequest {
+
+		private final ClientHttpRequest request;
+
+		private String route;
+
+		public ObservableRequest(ClientHttpRequest request) {
+			this.request = request;
+		}
+
+		@Override
+		public void header(String name, String value) {
+			this.request.getHeaders().add(name, value);
+		}
+
+		@Override
+		public String method() {
+			return this.request.getMethod().name();
+		}
+
+		@Override
+		public String path() {
+			return this.request.getURI().getRawPath();
+		}
+
+		@Override
+		public String url() {
+			return this.request.getURI().toASCIIString();
+		}
+
+		@Override
+		public String header(String name) {
+			return this.request.getHeaders().getFirst(name);
+		}
+
+		@Override
+		public Collection<String> headerNames() {
+			return this.request.getHeaders().keySet();
+		}
+
+		@Override
+		public Object unwrap() {
+			return this.request;
+		}
+
+		@Override
+		public String route() {
+			return this.route;
+		}
+
+		public void setRoute(String route) {
+			this.route = route;
+		}
+	}
+
+	public static class ObservableResponse implements HttpClientResponse {
+
+		private final ClientHttpResponse response;
+
+		public ObservableResponse(ClientHttpResponse response) {
+			this.response = response;
+		}
+
+		@Override
+		public int statusCode() {
+			try {
+				return this.response.getStatusCode().value();
+			}
+			catch (IOException exc) {
+				throw new RuntimeException(exc);
+			}
+		}
+
+		@Override
+		public Collection<String> headerNames() {
+			return this.response.getHeaders().keySet();
+		}
+
+		@Override
+		public Object unwrap() {
+			return this.response;
 		}
 	}
 

@@ -20,6 +20,7 @@ import java.net.URI;
 
 import io.micrometer.common.KeyValue;
 import io.micrometer.observation.Observation;
+import io.micrometer.observation.transport.http.context.HttpClientContext;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.http.HttpMethod;
@@ -37,16 +38,16 @@ class WebClientKeyValuesProviderTests {
 	private WebClientKeyValuesProvider keyValuesProvider = new WebClientKeyValuesProvider();
 
 	@Test
-	void shouldOnlySupportWebClientObservationContext() {
-		assertThat(this.keyValuesProvider.supportsContext(new WebClientObservationContext())).isTrue();
+	void shouldOnlySupportHttpClientContext() {
+		assertThat(this.keyValuesProvider.supportsContext(new HttpClientContext())).isTrue();
 		assertThat(this.keyValuesProvider.supportsContext(new Observation.Context())).isFalse();
 	}
 
 	@Test
 	void shouldAddKeyValuesForNullExchange() {
-		WebClientObservationContext context = new WebClientObservationContext();
+		HttpClientContext context = new HttpClientContext();
 		assertThat(this.keyValuesProvider.getLowCardinalityKeyValues(context)).hasSize(5)
-				.contains(KeyValue.of("method", "None"), KeyValue.of("uriTemplate", "None"), KeyValue.of("status", "CLIENT_ERROR"),
+				.contains(KeyValue.of("method", "None"), KeyValue.of("uri.template", "None"), KeyValue.of("status", "CLIENT_ERROR"),
 						KeyValue.of("exception", "None"), KeyValue.of("outcome", "UNKNOWN"));
 		assertThat(this.keyValuesProvider.getHighCardinalityKeyValues(context)).hasSize(2)
 				.contains(KeyValue.of("clientName", "None"), KeyValue.of("uri", ""));
@@ -54,10 +55,10 @@ class WebClientKeyValuesProviderTests {
 
 	@Test
 	void shouldAddKeyValuesForExchangeWithException() {
-		WebClientObservationContext context = new WebClientObservationContext();
+		HttpClientContext context = new HttpClientContext();
 		context.setError(new IllegalStateException("Could not create client request"));
 		assertThat(this.keyValuesProvider.getLowCardinalityKeyValues(context)).hasSize(5)
-				.contains(KeyValue.of("method", "None"), KeyValue.of("uriTemplate", "None"), KeyValue.of("status", "CLIENT_ERROR"),
+				.contains(KeyValue.of("method", "None"), KeyValue.of("uri.template", "None"), KeyValue.of("status", "CLIENT_ERROR"),
 						KeyValue.of("exception", "IllegalStateException"), KeyValue.of("outcome", "UNKNOWN"));
 		assertThat(this.keyValuesProvider.getHighCardinalityKeyValues(context)).hasSize(2)
 				.contains(KeyValue.of("clientName", "None"), KeyValue.of("uri", ""));
@@ -66,11 +67,12 @@ class WebClientKeyValuesProviderTests {
 	@Test
 	void shouldAddKeyValuesForRequestWithUriTemplate() {
 		ClientRequest request = ClientRequest.create(HttpMethod.GET, URI.create("/resource/42"))
-				.attribute(WebClient.class.getName() + ".uriTemplate", "/resource/{id}").build();
-		WebClientObservationContext context = createContext(request);
-		context.setUriTemplate("/resource/{id}");
+				.attribute(WebClient.class.getName() + ".uri.template", "/resource/{id}").build();
+		HttpClientContext context = createContext(request);
+		// TODO
+		//context.seturi.template("/resource/{id}");
 		assertThat(this.keyValuesProvider.getLowCardinalityKeyValues(context))
-				.contains(KeyValue.of("exception", "None"), KeyValue.of("method", "GET"), KeyValue.of("uriTemplate", "/resource/{id}"),
+				.contains(KeyValue.of("exception", "None"), KeyValue.of("method", "GET"), KeyValue.of("uri.template", "/resource/{id}"),
 						KeyValue.of("status", "200"), KeyValue.of("outcome", "SUCCESS"));
 		assertThat(this.keyValuesProvider.getHighCardinalityKeyValues(context)).hasSize(2)
 				.contains(KeyValue.of("clientName", "None"), KeyValue.of("uri", "/resource/42"));
@@ -78,22 +80,22 @@ class WebClientKeyValuesProviderTests {
 
 	@Test
 	void shouldAddKeyValuesForRequestWithoutUriTemplate() {
-		WebClientObservationContext context = createContext(ClientRequest.create(HttpMethod.GET, URI.create("/resource/42")).build());
+		HttpClientContext context = createContext(ClientRequest.create(HttpMethod.GET, URI.create("/resource/42")).build());
 		assertThat(this.keyValuesProvider.getLowCardinalityKeyValues(context))
-				.contains(KeyValue.of("method", "GET"), KeyValue.of("uriTemplate", "None"));
+				.contains(KeyValue.of("method", "GET"), KeyValue.of("uri.template", "None"));
 		assertThat(this.keyValuesProvider.getHighCardinalityKeyValues(context)).hasSize(2).contains(KeyValue.of("uri", "/resource/42"));
 	}
 
 	@Test
 	void shouldAddClientNameKeyValueForRequestWithHost() {
-		WebClientObservationContext context = createContext(ClientRequest.create(HttpMethod.GET, URI.create("https://localhost:8080/resource/42")).build());
+		HttpClientContext context = createContext(ClientRequest.create(HttpMethod.GET, URI.create("https://localhost:8080/resource/42")).build());
 		assertThat(this.keyValuesProvider.getHighCardinalityKeyValues(context)).contains(KeyValue.of("clientName", "localhost"));
 	}
 
-	private WebClientObservationContext createContext(ClientRequest request) {
-		WebClientObservationContext context = new WebClientObservationContext();
-		context.setRequest(request);
-		context.setResponse(ClientResponse.create(HttpStatus.OK).build());
+	private HttpClientContext createContext(ClientRequest request) {
+		HttpClientContext context = new HttpClientContext();
+		context.setRequest(new DefaultWebClient.ObservableRequest(request));
+		context.setResponse(new DefaultWebClient.ObservableResponse(ClientResponse.create(HttpStatus.OK).build()));
 		return context;
 	}
 

@@ -25,6 +25,7 @@ import java.util.function.Consumer;
 
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
+import io.micrometer.observation.transport.http.context.HttpClientContext;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.client.reactive.ClientHttpConnector;
@@ -102,7 +103,7 @@ final class DefaultWebClientBuilder implements WebClient.Builder {
 
 	private ObservationRegistry observationRegistry = ObservationRegistry.NOOP;
 
-	private Observation.KeyValuesProvider<WebClientObservationContext> keyValuesProvider = new WebClientKeyValuesProvider();
+	private Observation.KeyValuesProvider<HttpClientContext> keyValuesProvider = new WebClientKeyValuesProvider();
 
 
 	public DefaultWebClientBuilder() {
@@ -267,7 +268,7 @@ final class DefaultWebClientBuilder implements WebClient.Builder {
 	}
 
 	@Override
-	public WebClient.Builder keyValuesProvider(Observation.KeyValuesProvider<WebClientObservationContext> keyValuesProvider) {
+	public WebClient.Builder keyValuesProvider(Observation.KeyValuesProvider<HttpClientContext> keyValuesProvider) {
 		Assert.notNull(keyValuesProvider, "KeyValuesProvider must not be null");
 		this.keyValuesProvider = keyValuesProvider;
 		return this;

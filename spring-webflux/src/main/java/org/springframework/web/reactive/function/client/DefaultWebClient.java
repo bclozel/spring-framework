@@ -21,6 +21,7 @@ import java.nio.charset.Charset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +33,9 @@ import java.util.function.Supplier;
 
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
+import io.micrometer.observation.transport.http.HttpClientRequest;
+import io.micrometer.observation.transport.http.HttpClientResponse;
+import io.micrometer.observation.transport.http.context.HttpClientContext;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -89,14 +93,14 @@ class DefaultWebClient implements WebClient {
 
 	private final ObservationRegistry observationRegistry;
 
-	private final Observation.KeyValuesProvider<WebClientObservationContext> keyValuesProvider;
+	private final Observation.KeyValuesProvider<HttpClientContext> keyValuesProvider;
 
 	private final DefaultWebClientBuilder builder;
 
 
 	DefaultWebClient(ExchangeFunction exchangeFunction, UriBuilderFactory uriBuilderFactory,
 			@Nullable HttpHeaders defaultHeaders, @Nullable MultiValueMap<String, String> defaultCookies,
-			ObservationRegistry observationRegistry, Observation.KeyValuesProvider<WebClientObservationContext> keyValuesProvider,
+			ObservationRegistry observationRegistry, Observation.KeyValuesProvider<HttpClientContext> keyValuesProvider,
 			@Nullable Consumer<RequestHeadersSpec<?>> defaultRequest, DefaultWebClientBuilder builder) {
 
 		this.exchangeFunction = exchangeFunction;
@@ -439,22 +443,21 @@ class DefaultWebClient implements WebClient {
 		@Override
 		@SuppressWarnings("deprecation")
 		public Mono<ClientResponse> exchange() {
-			WebClientObservationContext observationContext = new WebClientObservationContext();
+			HttpClientContext observationContext = new HttpClientContext();
 			ClientRequest request = (this.inserter != null ?
 					initRequestBuilder().body(this.inserter).build() :
 					initRequestBuilder().build());
 			return Mono.defer(() -> {
 				Observation observation = Observation.createNotStarted(ClientHttpObservation.HTTP_REQUEST.getName(), observationContext, observationRegistry)
 						.keyValuesProvider(keyValuesProvider).start();
-				observationContext.setRequest(request);
-				observationContext.setUriTemplate((String) request.attribute(URI_TEMPLATE_ATTRIBUTE).orElse(null));
+				observationContext.setRequest(new ObservableRequest(request));
 				Mono<ClientResponse> responseMono = exchangeFunction.exchange(request)
 						.checkpoint("Request to " + this.httpMethod.name() + " " + this.uri + " [DefaultWebClient]")
 						.switchIfEmpty(NO_HTTP_CLIENT_RESPONSE_ERROR);
 				if (this.contextModifier != null) {
 					responseMono = responseMono.contextWrite(this.contextModifier);
 				}
-				return responseMono.doOnNext(observationContext::setResponse)
+				return responseMono.doOnNext(response -> observationContext.setResponse(new ObservableResponse(response)))
 						.doOnError(observationContext::setError)
 						.doOnCancel(observation::stop)
 						.doOnTerminate(observation::stop);
@@ -715,6 +718,79 @@ class DefaultWebClient implements WebClient {
 			public Mono<? extends Throwable> apply(ClientResponse response) {
 				return this.exceptionFunction.apply(response);
 			}
+		}
+	}
+
+	public static class ObservableRequest implements HttpClientRequest {
+
+		private final ClientRequest request;
+
+		public ObservableRequest(ClientRequest request) {
+			this.request = request;
+		}
+
+		@Override
+		public void header(String name, String value) {
+			this.request.headers().add(name, value);
+		}
+
+		@Override
+		public String method() {
+			return this.request.method().name();
+		}
+
+		@Override
+		public String path() {
+			return this.request.url().getPath();
+		}
+
+		@Override
+		public String url() {
+			return this.request.url().toASCIIString();
+		}
+
+		@Override
+		public String header(String name) {
+			return this.request.headers().getFirst(name);
+		}
+
+		@Override
+		public Collection<String> headerNames() {
+			return this.request.headers().keySet();
+		}
+
+		@Override
+		public Object unwrap() {
+			return this.request;
+		}
+
+		@Override
+		public String route() {
+			return (String) this.request.attribute(URI_TEMPLATE_ATTRIBUTE).orElse(null);
+		}
+	}
+
+	public static class ObservableResponse implements HttpClientResponse {
+
+		private final ClientResponse response;
+
+		public ObservableResponse(ClientResponse response) {
+			this.response = response;
+		}
+
+		@Override
+		public int statusCode() {
+			return this.response.statusCode().value();
+		}
+
+		@Override
+		public Collection<String> headerNames() {
+			return this.response.headers().asHttpHeaders().keySet();
+		}
+
+		@Override
+		public Object unwrap() {
+			return this.response;
 		}
 	}
 

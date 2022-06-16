@@ -28,6 +28,7 @@ import java.util.function.Predicate;
 
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
+import io.micrometer.observation.transport.http.context.HttpClientContext;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -337,7 +338,7 @@ public interface WebClient {
 		 * @param keyValuesProvider the KeyValues provider to use
 		 * @since 6.0
 		 */
-		Builder keyValuesProvider(Observation.KeyValuesProvider<WebClientObservationContext> keyValuesProvider);
+		Builder keyValuesProvider(Observation.KeyValuesProvider<HttpClientContext> keyValuesProvider);
 
 		/**
 		 * Apply the given {@code Consumer} to this builder instance.

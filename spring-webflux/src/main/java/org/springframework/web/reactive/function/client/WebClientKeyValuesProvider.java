@@ -21,6 +21,7 @@ import java.io.IOException;
 import io.micrometer.common.KeyValue;
 import io.micrometer.common.KeyValues;
 import io.micrometer.observation.Observation;
+import io.micrometer.observation.transport.http.context.HttpClientContext;
 import io.micrometer.observation.transport.http.tags.Outcome;
 
 import org.springframework.http.client.ClientHttpObservation;
@@ -34,7 +35,7 @@ import org.springframework.util.StringUtils;
  * @author Brian Clozel
  * @since 6.0
  */
-public class WebClientKeyValuesProvider implements Observation.KeyValuesProvider<WebClientObservationContext> {
+public class WebClientKeyValuesProvider implements Observation.KeyValuesProvider<HttpClientContext> {
 
 	private static final KeyValue URITEMPLATE_NONE = KeyValue.of(ClientHttpObservation.LowCardinalityKeyNames.URI_TEMPLATE.getKeyName(), "None");
 
@@ -44,37 +45,37 @@ public class WebClientKeyValuesProvider implements Observation.KeyValuesProvider
 
 	@Override
 	public boolean supportsContext(Observation.Context context) {
-		return context instanceof WebClientObservationContext;
+		return context instanceof HttpClientContext;
 	}
 
 	@Override
-	public KeyValues getLowCardinalityKeyValues(WebClientObservationContext context) {
+	public KeyValues getLowCardinalityKeyValues(HttpClientContext context) {
 		return KeyValues.of(uriTemplate(context), method(context), status(context), exception(context), outcome(context));
 	}
 
-	protected KeyValue uriTemplate(WebClientObservationContext context) {
-		if (context.getUriTemplate() != null) {
-			return KeyValue.of(ClientHttpObservation.LowCardinalityKeyNames.URI_TEMPLATE.getKeyName(), context.getUriTemplate());
+	protected KeyValue uriTemplate(HttpClientContext context) {
+		if (context.getRequest() != null && context.getRequest().route() != null) {
+			return KeyValue.of(ClientHttpObservation.LowCardinalityKeyNames.URI_TEMPLATE.getKeyName(), context.getRequest().route());
 		}
 		return URITEMPLATE_NONE;
 	}
 
-	protected KeyValue method(WebClientObservationContext context) {
+	protected KeyValue method(HttpClientContext context) {
 		if (context.getRequest() != null) {
-			return KeyValue.of(ClientHttpObservation.LowCardinalityKeyNames.METHOD.getKeyName(), context.getRequest().method().name());
+			return KeyValue.of(ClientHttpObservation.LowCardinalityKeyNames.METHOD.getKeyName(), context.getRequest().method());
 		}
 		else {
 			return METHOD_NONE;
 		}
 	}
 
-	protected KeyValue status(WebClientObservationContext context) {
+	protected KeyValue status(HttpClientContext context) {
 		return KeyValue.of(ClientHttpObservation.LowCardinalityKeyNames.STATUS.getKeyName(), getStatusMessage(context));
 	}
 
-	private String getStatusMessage(WebClientObservationContext context) {
+	private String getStatusMessage(HttpClientContext context) {
 		if (context.getResponse() != null) {
-			return String.valueOf(context.getResponse().statusCode().value());
+			return String.valueOf(context.getResponse().statusCode());
 		}
 		if (context.getError().isPresent()) {
 			return (context.getError().get() instanceof IOException) ? "IO_ERROR" : "CLIENT_ERROR";
@@ -82,7 +83,7 @@ public class WebClientKeyValuesProvider implements Observation.KeyValuesProvider
 		return "CLIENT_ERROR";
 	}
 
-	protected KeyValue exception(WebClientObservationContext context) {
+	protected KeyValue exception(HttpClientContext context) {
 		return context.getError().map(exception -> {
 			String simpleName = exception.getClass().getSimpleName();
 			return KeyValue.of(ClientHttpObservation.LowCardinalityKeyNames.EXCEPTION.getKeyName(),
@@ -90,31 +91,34 @@ public class WebClientKeyValuesProvider implements Observation.KeyValuesProvider
 		}).orElse(EXCEPTION_NONE);
 	}
 
-	protected static KeyValue outcome(WebClientObservationContext context) {
+	protected static KeyValue outcome(HttpClientContext context) {
 		if (context.getResponse() != null) {
-			Outcome outcome = Outcome.forStatus(context.getResponse().statusCode().value());
+			Outcome outcome = Outcome.forStatus(context.getResponse().statusCode());
 			return KeyValue.of(ClientHttpObservation.LowCardinalityKeyNames.OUTCOME.getKeyName(), outcome.name());
 		}
 		return Outcome.UNKNOWN.asTag();
 	}
 
 	@Override
-	public KeyValues getHighCardinalityKeyValues(WebClientObservationContext context) {
+	public KeyValues getHighCardinalityKeyValues(HttpClientContext context) {
 		return KeyValues.of(requestUri(context), clientName(context));
 	}
 
-	protected KeyValue requestUri(WebClientObservationContext context) {
+	protected KeyValue requestUri(HttpClientContext context) {
 		if (context.getRequest() != null) {
-			return KeyValue.of(ClientHttpObservation.HighCardinalityKeyNames.URI.getKeyName(), context.getRequest().url().toASCIIString());
+			return KeyValue.of(ClientHttpObservation.HighCardinalityKeyNames.URI.getKeyName(), context.getRequest().url());
 		}
 		return KeyValue.of(ClientHttpObservation.HighCardinalityKeyNames.URI.getKeyName(), "");
 	}
 
-	protected KeyValue clientName(WebClientObservationContext context) {
+	protected KeyValue clientName(HttpClientContext context) {
 		String host = "None";
+		// TODO: how can we get this value?
+		/*
 		if (context.getRequest() != null && context.getRequest().url().getHost() != null) {
 			host = context.getRequest().url().getHost();
 		}
+		*/
 		return KeyValue.of(ClientHttpObservation.HighCardinalityKeyNames.CLIENT_NAME.getKeyName(), host);
 	}
 
