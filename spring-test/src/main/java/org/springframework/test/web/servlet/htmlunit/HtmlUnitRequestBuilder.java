@@ -19,6 +19,7 @@ package org.springframework.test.web.servlet.htmlunit;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.Charset;
@@ -58,6 +59,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
+import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -75,6 +77,9 @@ import org.springframework.web.util.UriComponentsBuilder;
  * @see MockMvcWebConnection
  */
 final class HtmlUnitRequestBuilder implements RequestBuilder, Mergeable {
+
+	@Nullable
+	private static final Method parametersMethod = ReflectionUtils.findMethod(WebRequest.class, "getParameters");
 
 	private final Map<String, MockHttpSession> sessions;
 
@@ -362,38 +367,51 @@ final class HtmlUnitRequestBuilder implements RequestBuilder, Mergeable {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	private void params(MockHttpServletRequest request, UriComponents uriComponents) {
-		uriComponents.getQueryParams().forEach((name, values) -> {
-			String urlDecodedName = urlDecode(name);
-			values.forEach(value -> {
-				value = (value != null ? urlDecode(value) : "");
-				request.addParameter(urlDecodedName, value);
+		if (parametersMethod != null) {
+			List<NameValuePair> parameters = (List<NameValuePair>) ReflectionUtils.invokeMethod(parametersMethod, this.webRequest);
+			for (NameValuePair param : parameters) {
+				addRequestParameter(request, param);
+			}
+		}
+		else {
+			uriComponents.getQueryParams().forEach((name, values) -> {
+				String urlDecodedName = urlDecode(name);
+				values.forEach(value -> {
+					value = (value != null ? urlDecode(value) : "");
+					request.addParameter(urlDecodedName, value);
+				});
 			});
-		});
-		for (NameValuePair param : this.webRequest.getRequestParameters()) {
-			if (param instanceof KeyDataPair) {
-				KeyDataPair pair = (KeyDataPair) param;
-				File file = pair.getFile();
-				MockPart part;
-				if (file != null) {
-					part = new MockPart(pair.getName(), file.getName(), readAllBytes(file));
-				}
-				else {
-					// Support empty file upload OR file upload via setData().
-					// For an empty file upload, getValue() returns an empty string, and
-					// getData() returns null.
-					// For a file upload via setData(), getData() returns the file data, and
-					// getValue() returns the file name (if set) or an empty string.
-					part = new MockPart(pair.getName(), pair.getValue(), pair.getData());
-				}
-				MediaType mediaType = (pair.getMimeType() != null ? MediaType.valueOf(pair.getMimeType()) :
-						MediaType.APPLICATION_OCTET_STREAM);
-				part.getHeaders().setContentType(mediaType);
-				request.addPart(part);
+			for (NameValuePair param : this.webRequest.getRequestParameters()) {
+				addRequestParameter(request, param);
+			}
+		}
+	}
+
+	private void addRequestParameter(MockHttpServletRequest request, NameValuePair param) {
+		if (param instanceof KeyDataPair) {
+			KeyDataPair pair = (KeyDataPair) param;
+			File file = pair.getFile();
+			MockPart part;
+			if (file != null) {
+				part = new MockPart(pair.getName(), file.getName(), readAllBytes(file));
 			}
 			else {
-				request.addParameter(param.getName(), param.getValue());
+				// Support empty file upload OR file upload via setData().
+				// For an empty file upload, getValue() returns an empty string, and
+				// getData() returns null.
+				// For a file upload via setData(), getData() returns the file data, and
+				// getValue() returns the file name (if set) or an empty string.
+				part = new MockPart(pair.getName(), pair.getValue(), pair.getData());
 			}
+			MediaType mediaType = (pair.getMimeType() != null ? MediaType.valueOf(pair.getMimeType()) :
+					MediaType.APPLICATION_OCTET_STREAM);
+			part.getHeaders().setContentType(mediaType);
+			request.addPart(part);
+		}
+		else {
+			request.addParameter(param.getName(), param.getValue());
 		}
 	}
 

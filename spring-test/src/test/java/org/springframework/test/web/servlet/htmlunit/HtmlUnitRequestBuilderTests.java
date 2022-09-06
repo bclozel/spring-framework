@@ -22,7 +22,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Locale;
@@ -39,7 +38,6 @@ import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.WebRequest;
 import com.gargoylesoftware.htmlunit.util.KeyDataPair;
 import com.gargoylesoftware.htmlunit.util.MimeType;
-import com.gargoylesoftware.htmlunit.util.NameValuePair;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.junit.jupiter.api.BeforeEach;
@@ -375,59 +373,9 @@ public class HtmlUnitRequestBuilderTests {
 		}
 	}
 
-	@Test
-	public void buildRequestParameterMapViaWebRequestDotSetRequestParametersWithSingleRequestParam() {
-		webRequest.setRequestParameters(Arrays.asList(new NameValuePair("name", "value")));
-
-		MockHttpServletRequest actualRequest = requestBuilder.buildRequest(servletContext);
-
-		assertThat(actualRequest.getParameterMap().size()).isEqualTo(1);
-		assertThat(actualRequest.getParameter("name")).isEqualTo("value");
-	}
-
-	@Test
-	public void buildRequestParameterMapViaWebRequestDotSetRequestParametersWithSingleRequestParamWithNullValue() {
-		webRequest.setRequestParameters(Arrays.asList(new NameValuePair("name", null)));
-
-		MockHttpServletRequest actualRequest = requestBuilder.buildRequest(servletContext);
-
-		assertThat(actualRequest.getParameterMap().size()).isEqualTo(1);
-		assertThat(actualRequest.getParameter("name")).isNull();
-	}
-
-	@Test
-	public void buildRequestParameterMapViaWebRequestDotSetRequestParametersWithSingleRequestParamWithEmptyValue() {
-		webRequest.setRequestParameters(Arrays.asList(new NameValuePair("name", "")));
-
-		MockHttpServletRequest actualRequest = requestBuilder.buildRequest(servletContext);
-
-		assertThat(actualRequest.getParameterMap().size()).isEqualTo(1);
-		assertThat(actualRequest.getParameter("name")).isEqualTo("");
-	}
-
-	@Test
-	public void buildRequestParameterMapViaWebRequestDotSetRequestParametersWithSingleRequestParamWithValueSetToSpace() {
-		webRequest.setRequestParameters(Arrays.asList(new NameValuePair("name", " ")));
-
-		MockHttpServletRequest actualRequest = requestBuilder.buildRequest(servletContext);
-
-		assertThat(actualRequest.getParameterMap().size()).isEqualTo(1);
-		assertThat(actualRequest.getParameter("name")).isEqualTo(" ");
-	}
-
-	@Test
-	public void buildRequestParameterMapViaWebRequestDotSetRequestParametersWithMultipleRequestParams() {
-		webRequest.setRequestParameters(Arrays.asList(new NameValuePair("name1", "value1"), new NameValuePair("name2", "value2")));
-
-		MockHttpServletRequest actualRequest = requestBuilder.buildRequest(servletContext);
-
-		assertThat(actualRequest.getParameterMap().size()).isEqualTo(2);
-		assertThat(actualRequest.getParameter("name1")).isEqualTo("value1");
-		assertThat(actualRequest.getParameter("name2")).isEqualTo("value2");
-	}
-
 	@Test // gh-24926
 	public void buildRequestParameterMapViaWebRequestDotSetRequestParametersWithFileToUploadAsParameter() throws Exception {
+		webRequest.setHttpMethod(HttpMethod.POST);
 		webRequest.setRequestParameters(Collections.singletonList(
 				new KeyDataPair("key",
 						new ClassPathResource("org/springframework/test/web/htmlunit/test.txt").getFile(),
@@ -450,6 +398,7 @@ public class HtmlUnitRequestBuilderTests {
 		KeyDataPair keyDataPair = new KeyDataPair("key", new File("test.json"), null, MimeType.APPLICATION_JSON, StandardCharsets.UTF_8);
 		keyDataPair.setData(data.getBytes());
 
+		webRequest.setHttpMethod(HttpMethod.POST);
 		webRequest.setRequestParameters(Collections.singletonList(keyDataPair));
 
 		MockHttpServletRequest actualRequest = requestBuilder.buildRequest(servletContext);
@@ -473,6 +422,7 @@ public class HtmlUnitRequestBuilderTests {
 
 	@Test // gh-26799
 	public void buildRequestParameterMapViaWebRequestDotSetRequestParametersWithNullFileToUploadAsParameter() throws Exception {
+		webRequest.setHttpMethod(HttpMethod.POST);
 		webRequest.setRequestParameters(Collections.singletonList(new KeyDataPair("key", null, null, null, (Charset) null)));
 
 		MockHttpServletRequest actualRequest = requestBuilder.buildRequest(servletContext);
@@ -533,7 +483,7 @@ public class HtmlUnitRequestBuilderTests {
 		MockHttpServletRequest actualRequest = requestBuilder.buildRequest(servletContext);
 
 		assertThat(actualRequest.getParameterMap().size()).isEqualTo(1);
-		assertThat(actualRequest.getParameter("name")).isEqualTo("");
+		assertThat(actualRequest.getParameter("name")).isEqualTo(null);
 	}
 
 	@Test

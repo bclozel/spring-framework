@@ -185,6 +185,10 @@ public class ResourceHttpRequestHandlerIntegrationTests {
 		@Override
 		public void configurePathMatch(PathMatchConfigurer configurer) {
 			configurer.setPatternParser(new PathPatternParser());
+			UrlPathHelper urlPathHelper = new UrlPathHelper();
+			urlPathHelper.setAlwaysUseFullPath(true);
+			urlPathHelper.setUrlDecode(false);
+			configurer.setUrlPathHelper(urlPathHelper);
 		}
 	}
 
