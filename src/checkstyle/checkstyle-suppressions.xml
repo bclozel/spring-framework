@@ -11,9 +11,9 @@
 	<suppress files="(^(?!.+[\\/]src[\\/]main[\\/]java[\\/].*package-info\.java))|(.*framework-docs.*)|(.*spring-(context-indexer|instrument|jcl).*)" checks="RegexpSinglelineJava" id="packageLevelNonNullFieldsAnnotation" />
 
 	<!-- Global: tests and test fixtures -->
-	<suppress files="[\\/]src[\\/](test|testFixtures)[\\/]java[\\/]" checks="AnnotationLocation|AnnotationUseStyle|AtclauseOrder|AvoidNestedBlocks|FinalClass|HideUtilityClassConstructor|InnerTypeLast|JavadocStyle|JavadocType|JavadocVariable|LeftCurly|MultipleVariableDeclarations|NeedBraces|OneTopLevelClass|OuterTypeFilename|RequireThis|SpringCatch|SpringJavadoc|SpringNoThis"/>
-	<suppress files="[\\/]src[\\/](test|testFixtures)[\\/]java[\\/]org[\\/]springframework[\\/].+(Tests|Suite)" checks="IllegalImport" id="bannedJUnitJupiterImports"/>
-	<suppress files="[\\/]src[\\/](test|testFixtures)[\\/]java[\\/]" checks="SpringJUnit5" message="should not be public"/>
+	<suppress files="[\\/]src[\\/](test|testFixtures)[\\/](java|java21)[\\/]" checks="AnnotationLocation|AnnotationUseStyle|AtclauseOrder|AvoidNestedBlocks|FinalClass|HideUtilityClassConstructor|InnerTypeLast|JavadocStyle|JavadocType|JavadocVariable|LeftCurly|MultipleVariableDeclarations|NeedBraces|OneTopLevelClass|OuterTypeFilename|RequireThis|SpringCatch|SpringJavadoc|SpringNoThis"/>
+	<suppress files="[\\/]src[\\/](test|testFixtures)[\\/](java|java21)[\\/]org[\\/]springframework[\\/].+(Tests|Suite)" checks="IllegalImport" id="bannedJUnitJupiterImports"/>
+	<suppress files="[\\/]src[\\/](test|testFixtures)[\\/](java|java21)[\\/]" checks="SpringJUnit5" message="should not be public"/>
 
 	<!-- JMH benchmarks -->
 	<suppress files="[\\/]src[\\/]jmh[\\/]java[\\/]org[\\/]springframework[\\/]" checks="JavadocVariable|JavadocStyle|InnerTypeLast"/>
@@ -44,7 +44,7 @@
 	<suppress files="[\\/]src[\\/]main[\\/]java[\\/]org[\\/]springframework[\\/]lang[\\/]" checks="RegexpSinglelineJava" id="packageLevelNonNullApiAnnotation" />
 	<suppress files="[\\/]src[\\/]main[\\/]java[\\/]org[\\/]springframework[\\/]lang[\\/]" checks="RegexpSinglelineJava" id="packageLevelNonNullFieldsAnnotation" />
 	<suppress files="[\\/]src[\\/]main[\\/]java[\\/]org[\\/]springframework[\\/]core[\\/]annotation[\\/]" checks="IllegalImport" id="bannedImports" message="javax"/>
-	<suppress files="[\\/]src[\\/]test[\\/]java[\\/]org[\\/]springframework[\\/]core[\\/]annotation[\\/]" checks="IllegalImport" id="bannedImports" message="javax"/>
+	<suppress files="[\\/]src[\\/]test[\\/](java|java21)[\\/]org[\\/]springframework[\\/]core[\\/]annotation[\\/]" checks="IllegalImport" id="bannedImports" message="javax"/>
 	<suppress files="ByteArrayEncoder" checks="SpringLambda"/>
 	<suppress files="SocketUtils" checks="HideUtilityClassConstructor"/>
 	<suppress files="ResolvableType" checks="FinalClass"/>
@@ -80,7 +80,7 @@
 	<suppress files="StompHeaderAccessor" checks="JavadocVariable"/>
 	<suppress files="StompHeaders" checks="JavadocVariable"/>
 	<suppress files="org[\\/]springframework[\\/]messaging[\\/]handler[\\/]annotation[\\/]ValueConstants" checks="InterfaceIsType"/>
-	<suppress files="src[\\/]test[\\/]java[\\/]org[\\/]springframework[\\/]messaging[\\/]protobuf[\\/].*" checks=".*"/>
+	<suppress files="src[\\/]test[\\/](java|java21)[\\/]org[\\/]springframework[\\/]messaging[\\/]protobuf[\\/].*" checks=".*"/>
 
 	<!-- spring-orm -->
 	<suppress files="jpa[\\/]vendor[\\/]Database" checks="JavadocVariable|JavadocStyle"/>
@@ -99,12 +99,12 @@
 	<suppress files="src[\\/]main[\\/]java[\\/]org[\\/]springframework[\\/]test[\\/]web[\\/]reactive[\\/]server[\\/].+" checks="IllegalImport" id="bannedHamcrestImports"/>
 	<suppress files="src[\\/]main[\\/]java[\\/]org[\\/]springframework[\\/]test[\\/]web[\\/]servlet[\\/]result[\\/].+Matchers" checks="IllegalImport" id="bannedHamcrestImports"/>
 	<!-- spring-test - test -->
-	<suppress files="src[\\/]test[\\/]java[\\/]org[\\/]springframework[\\/]test[\\/].+TestNGTests" checks="IllegalImport" id="bannedTestNGImports"/>
-	<suppress files="src[\\/]test[\\/]java[\\/]org[\\/]springframework[\\/]test[\\/]context[\\/]aot[\\/]samples[\\/]web[\\/].+Tests" checks="IllegalImport" id="bannedHamcrestImports"/>
-	<suppress files="src[\\/]test[\\/]java[\\/]org[\\/]springframework[\\/]test[\\/]context[\\/]junit[\\/]jupiter[\\/]web[\\/].+Tests" checks="IllegalImport" id="bannedHamcrestImports"/>
-	<suppress files="src[\\/]test[\\/]java[\\/]org[\\/]springframework[\\/]test[\\/]util[\\/].+Tests" checks="IllegalImport" id="bannedHamcrestImports"/>
-	<suppress files="src[\\/]test[\\/]java[\\/]org[\\/]springframework[\\/]test[\\/]web[\\/](client|reactive|servlet)[\\/].+Tests" checks="IllegalImport" id="bannedHamcrestImports"/>
-	<suppress files="src[\\/]test[\\/]java[\\/]org[\\/]springframework[\\/]test[\\/]context[\\/](aot|junit4)" checks="SpringJUnit5"/>
+	<suppress files="src[\\/]test[\\/](java|java21)[\\/]org[\\/]springframework[\\/]test[\\/].+TestNGTests" checks="IllegalImport" id="bannedTestNGImports"/>
+	<suppress files="src[\\/]test[\\/](java|java21)[\\/]org[\\/]springframework[\\/]test[\\/]context[\\/]aot[\\/]samples[\\/]web[\\/].+Tests" checks="IllegalImport" id="bannedHamcrestImports"/>
+	<suppress files="src[\\/]test[\\/](java|java21)[\\/]org[\\/]springframework[\\/]test[\\/]context[\\/]junit[\\/]jupiter[\\/]web[\\/].+Tests" checks="IllegalImport" id="bannedHamcrestImports"/>
+	<suppress files="src[\\/]test[\\/](java|java21)[\\/]org[\\/]springframework[\\/]test[\\/]util[\\/].+Tests" checks="IllegalImport" id="bannedHamcrestImports"/>
+	<suppress files="src[\\/]test[\\/](java|java21)[\\/]org[\\/]springframework[\\/]test[\\/]web[\\/](client|reactive|servlet)[\\/].+Tests" checks="IllegalImport" id="bannedHamcrestImports"/>
+	<suppress files="src[\\/]test[\\/](java|java21)[\\/]org[\\/]springframework[\\/]test[\\/]context[\\/](aot|junit4)" checks="SpringJUnit5"/>
 	<suppress files="ContextHierarchyDirtiesContextTests|ClassLevelDirtiesContextTests|ContextConfigurationWithPropertiesExtendingPropertiesAndInheritedLoaderTests|ContextConfigurationWithPropertiesExtendingPropertiesTests|DirtiesContextInterfaceTests|.+WacTests|JUnit4SpringContextWebTests" checks="SpringJUnit5"/>
 	<suppress files=".+TestSuite|ContextHierarchyDirtiesContextTests|ClassLevelDirtiesContextTests|ContextConfigurationWithPropertiesExtendingPropertiesAndInheritedLoaderTests|ContextConfigurationWithPropertiesExtendingPropertiesTests|DirtiesContextInterfaceTests|.+WacTests|JUnit4SpringContextWebTests" checks="IllegalImport" id="bannedJUnit4Imports"/>
 	<suppress files="org[\\/]springframework[\\/]test[\\/]context[\\/].+[\\/](ExpectedExceptionSpringRunnerTests|StandardJUnit4FeaturesTests|ProgrammaticTxMgmtTestNGTests)" checks="RegexpSinglelineJava" id="expectedExceptionAnnotation"/>
@@ -121,22 +121,22 @@
 	<suppress files="RestClientResponseException" checks="MutableException"/>
 
 	<!-- spring-webflux -->
-	<suppress files="src[\\/]test[\\/]java[\\/]org[\\/]springframework[\\/]web[\\/]reactive[\\/]resource[\\/]GzipSupport" checks="IllegalImport" id="bannedJUnitJupiterImports"/>
+	<suppress files="src[\\/]test[\\/](java|java21)[\\/]org[\\/]springframework[\\/]web[\\/]reactive[\\/]resource[\\/]GzipSupport" checks="IllegalImport" id="bannedJUnitJupiterImports"/>
 	<suppress files="WebClientResponseException" checks="MutableException"/>
 
 	<!-- spring-webmvc -->
 	<suppress files="org[\\/]springframework[\\/]web[\\/]servlet[\\/]tags[\\/]form[\\/].*Tag" checks="JavadocVariable"/>
-	<suppress files="src[\\/]test[\\/]java[\\/]org[\\/]springframework[\\/]protobuf[\\/].*" checks=".*"/>
+	<suppress files="src[\\/]test[\\/](java|java21)[\\/]org[\\/]springframework[\\/]protobuf[\\/].*" checks=".*"/>
 	<suppress files="ExtractingResponseErrorHandlerTests" checks="MutableException"/>
 	<suppress files="ServletAnnotationControllerHandlerMethodTests" checks="InterfaceIsType"/>
-	<suppress files="src[\\/]test[\\/]java[\\/]org[\\/]springframework[\\/]web[\\/]servlet[\\/]resource[\\/]GzipSupport" checks="IllegalImport" id="bannedJUnitJupiterImports"/>
-	<suppress files="src[\\/]test[\\/]java[\\/]org[\\/]springframework[\\/]web[\\/]servlet[\\/]handler[\\/]PathPatterns.+" checks="IllegalImport" id="bannedJUnitJupiterImports"/>
+	<suppress files="src[\\/]test[\\/](java|java21)[\\/]org[\\/]springframework[\\/]web[\\/]servlet[\\/]resource[\\/]GzipSupport" checks="IllegalImport" id="bannedJUnitJupiterImports"/>
+	<suppress files="src[\\/]test[\\/](java|java21)[\\/]org[\\/]springframework[\\/]web[\\/]servlet[\\/]handler[\\/]PathPatterns.+" checks="IllegalImport" id="bannedJUnitJupiterImports"/>
 
 	<!-- spring-websocket -->
 	<suppress files="web[\\/]socket[\\/]CloseStatus" checks="JavadocStyle"/>
 	<suppress files="web[\\/]socket[\\/]WebSocketHttpHeaders" checks="JavadocVariable"/>
 	<suppress files="sockjs[\\/]frame[\\/]SockJsFrameType" checks="JavadocVariable"/>
 	<suppress files="sockjs[\\/]transport[\\/]TransportType" checks="JavadocVariable"/>
-	<suppress files="src[\\/]test[\\/]java[\\/]org[\\/]springframework[\\/]web[\\/]reactive[\\/]protobuf[\\/].*" checks=".*"/>
+	<suppress files="src[\\/]test[\\/](java|java21)[\\/]org[\\/]springframework[\\/]web[\\/]reactive[\\/]protobuf[\\/].*" checks=".*"/>
 
 </suppressions>
