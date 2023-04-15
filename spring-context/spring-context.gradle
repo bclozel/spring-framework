@@ -1,10 +1,20 @@
 plugins {
 	id 'org.springframework.build.runtimehints-agent'
+	id 'me.champeau.mrjar'
 }
 
 description = "Spring Context"
 
 apply plugin: "kotlin"
+
+multiRelease {
+	targetVersions 17, 21
+}
+
+configurations {
+	java21Api.extendsFrom(api)
+	java21Implementation.extendsFrom(implementation)
+}
 
 dependencies {
 	api(project(":spring-aop"))
