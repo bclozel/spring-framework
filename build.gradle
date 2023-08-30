@@ -17,6 +17,7 @@ ext {
 }
 
 configure(allprojects) { project ->
+	apply plugin: "org.springframework.build.localdev"
 	repositories {
 		mavenCentral()
 		maven {

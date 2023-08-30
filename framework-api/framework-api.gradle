@@ -70,7 +70,7 @@ rootProject.tasks.dokkaHtmlMultiModule.configure {
  */
 tasks.register('docsZip', Zip) {
 	dependsOn = ['javadoc', rootProject.tasks.dokkaHtmlMultiModule]
-	group = "Distribution"
+	group = "distribution"
 	description = "Builds -${archiveClassifier} archive containing api and reference " +
 			"for deployment at https://docs.spring.io/spring-framework/docs/."
 
@@ -91,7 +91,7 @@ tasks.register('docsZip', Zip) {
  * Zip all Spring Framework schemas into a single archive
  */
 tasks.register('schemaZip', Zip) {
-	group = "Distribution"
+	group = "distribution"
 	archiveBaseName.set("spring-framework")
 	archiveClassifier.set("schema")
 	description = "Builds -${archiveClassifier} archive containing all " +
@@ -119,6 +119,7 @@ tasks.register('schemaZip', Zip) {
 }
 
 publishing {
+	group "distribution"
 	publications {
 		mavenJava(MavenPublication) {
 			artifact docsZip
