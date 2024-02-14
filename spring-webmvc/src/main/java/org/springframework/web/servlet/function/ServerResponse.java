@@ -571,6 +571,14 @@ public interface ServerResponse {
 		void send(Object object) throws IOException;
 
 		/**
+		 * Sends the buffered content as a server-sent event, without data.
+		 * Only the {@link #event(String) events} and {@link #comment(String) comments}
+		 * will be sent.
+		 * @throws IOException in case of I/O errors
+		 */
+		void send() throws IOException;
+
+		/**
 		 * Add an SSE "id" line.
 		 * @param id the event identifier
 		 * @return this builder
