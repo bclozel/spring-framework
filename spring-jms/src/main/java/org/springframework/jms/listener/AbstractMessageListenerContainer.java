@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,8 @@
  */
 
 package org.springframework.jms.listener;
+
+import java.util.List;
 
 import io.micrometer.jakarta9.instrument.jms.DefaultJmsProcessObservationConvention;
 import io.micrometer.jakarta9.instrument.jms.JmsObservationDocumentation;
@@ -33,10 +35,12 @@ import jakarta.jms.Queue;
 import jakarta.jms.Session;
 import jakarta.jms.Topic;
 
+import org.springframework.jms.support.MessageInterceptor;
 import org.springframework.jms.support.JmsUtils;
 import org.springframework.jms.support.QosSettings;
 import org.springframework.jms.support.converter.MessageConverter;
 import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.ErrorHandler;
 
@@ -185,6 +189,9 @@ public abstract class AbstractMessageListenerContainer extends AbstractJmsListen
 
 	@Nullable
 	private ErrorHandler errorHandler;
+
+	@Nullable
+	private List<MessageInterceptor> receiveInterceptors;
 
 	@Nullable
 	private ObservationRegistry observationRegistry;
@@ -575,6 +582,11 @@ public abstract class AbstractMessageListenerContainer extends AbstractJmsListen
 		return this.errorHandler;
 	}
 
+	public void setReceiveInterceptors(List<MessageInterceptor> receiveInterceptors) {
+		Assert.notNull(receiveInterceptors, "receiveInterceptors should not be null");
+		this.receiveInterceptors = receiveInterceptors;
+	}
+
 	/**
 	 * Set the {@link ObservationRegistry} to be used for recording
 	 * {@link JmsObservationDocumentation#JMS_MESSAGE_PROCESS JMS message processing observations}.
@@ -728,6 +740,8 @@ public abstract class AbstractMessageListenerContainer extends AbstractJmsListen
 	/**
 	 * Invoke the specified listener: either as standard JMS MessageListener
 	 * or (preferably) as Spring SessionAwareMessageListener.
+	 * <p>Invocation can be skipped if the message is ignored by one of the
+	 * configured {@link #setReceiveInterceptors(List) message interceptors}.
 	 * @param session the JMS Session to operate on
 	 * @param message the received JMS {@link Message}
 	 * @throws JMSException if thrown by JMS API methods
@@ -737,6 +751,9 @@ public abstract class AbstractMessageListenerContainer extends AbstractJmsListen
 	protected void invokeListener(Session session, Message message) throws JMSException {
 		Object listener = getMessageListener();
 
+		if (!shouldProcessMessage(message)) {
+			return;
+		}
 		if (listener instanceof SessionAwareMessageListener sessionAwareMessageListener) {
 			doInvokeListener(sessionAwareMessageListener, session, message);
 		}
@@ -811,6 +828,17 @@ public abstract class AbstractMessageListenerContainer extends AbstractJmsListen
 	 */
 	protected void doInvokeListener(MessageListener listener, Message message) throws JMSException {
 		listener.onMessage(message);
+	}
+
+	private boolean shouldProcessMessage(Message message) throws JMSException {
+		if (this.receiveInterceptors != null) {
+			for (MessageInterceptor interceptor : this.receiveInterceptors) {
+				if (!interceptor.intercept(message.getJMSDestination(), message)) {
+					return false;
+				}
+			}
+		}
+		return true;
 	}
 
 	/**

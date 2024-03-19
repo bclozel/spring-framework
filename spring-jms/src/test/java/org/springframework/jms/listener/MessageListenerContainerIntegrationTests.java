@@ -16,17 +16,20 @@
 
 package org.springframework.jms.listener;
 
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.tck.TestObservationRegistry;
+import io.micrometer.observation.tck.TestObservationRegistryAssert;
 import jakarta.jms.MessageListener;
+import jakarta.jms.Queue;
 import org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory;
 import org.apache.activemq.artemis.junit.EmbeddedActiveMQExtension;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -35,17 +38,18 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import org.springframework.jms.core.JmsTemplate;
+import org.springframework.jms.support.MessageInterceptor;
 
-import static io.micrometer.observation.tck.TestObservationRegistryAssert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Named.named;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
- * Observation tests for {@link AbstractMessageListenerContainer} implementations.
+ * Integration tests for {@link AbstractMessageListenerContainer} implementations.
  *
  * @author Brian Clozel
  */
-class MessageListenerContainerObservationTests {
+class MessageListenerContainerIntegrationTests {
 
 	@RegisterExtension
 	EmbeddedActiveMQExtension server = new EmbeddedActiveMQExtension();
@@ -73,10 +77,10 @@ class MessageListenerContainerObservationTests {
 		JmsTemplate jmsTemplate = new JmsTemplate(connectionFactory);
 		jmsTemplate.convertAndSend("spring.test.observation", "message content");
 		latch.await(2, TimeUnit.SECONDS);
-		assertThat(registry).hasObservationWithNameEqualTo("jms.message.process")
+		TestObservationRegistryAssert.assertThat(registry).hasObservationWithNameEqualTo("jms.message.process")
 				.that()
 				.hasHighCardinalityKeyValue("messaging.destination.name", "spring.test.observation");
-		assertThat(registry).hasNumberOfObservationsEqualTo(1);
+		TestObservationRegistryAssert.assertThat(registry).hasNumberOfObservationsEqualTo(1);
 		listenerContainer.stop();
 		listenerContainer.shutdown();
 	}
@@ -101,12 +105,73 @@ class MessageListenerContainerObservationTests {
 		JmsTemplate jmsTemplate = new JmsTemplate(connectionFactory);
 		jmsTemplate.convertAndSend("spring.test.observation", "message content");
 		latch.await(2, TimeUnit.SECONDS);
-		Assertions.assertThat(observationInErrorHandler.get()).isNotNull();
-		assertThat(registry).hasObservationWithNameEqualTo("jms.message.process")
+		assertThat(observationInErrorHandler.get()).isNotNull();
+		TestObservationRegistryAssert.assertThat(registry).hasObservationWithNameEqualTo("jms.message.process")
 				.that()
 				.hasHighCardinalityKeyValue("messaging.destination.name", "spring.test.observation")
 				.hasLowCardinalityKeyValue("exception", "none");
-		assertThat(registry).hasNumberOfObservationsEqualTo(1);
+		TestObservationRegistryAssert.assertThat(registry).hasNumberOfObservationsEqualTo(1);
+		listenerContainer.stop();
+		listenerContainer.shutdown();
+	}
+
+	@ParameterizedTest(name = "[{index}] {0}")
+	@MethodSource("listenerContainers")
+	void shouldApplyDiscardingInterceptorOnReceivedMessage(AbstractMessageListenerContainer listenerContainer) throws Exception {
+		JmsTemplate jmsTemplate = new JmsTemplate(connectionFactory);
+		jmsTemplate.convertAndSend("spring.test.interceptor", "message content");
+		CountDownLatch latch = new CountDownLatch(1);
+		AtomicBoolean interceptorCalled = new AtomicBoolean();
+		listenerContainer.setConnectionFactory(connectionFactory);
+
+		MessageInterceptor interceptor = (destination, message) -> {
+			assertThat(destination).isInstanceOf(Queue.class).extracting("queueName").isEqualTo("spring.test.interceptor");
+			interceptorCalled.set(true);
+			latch.countDown();
+			return false;
+		};
+		listenerContainer.setReceiveInterceptors(List.of(interceptor));
+		listenerContainer.setDestinationName("spring.test.interceptor");
+		listenerContainer.setMessageListener((MessageListener) message -> {
+			throw new IllegalStateException("should not invoke message listener");
+		});
+		listenerContainer.afterPropertiesSet();
+		listenerContainer.start();
+		latch.await(2, TimeUnit.SECONDS);
+
+		assertThat(interceptorCalled).isTrue();
+		listenerContainer.stop();
+		listenerContainer.shutdown();
+	}
+
+	@ParameterizedTest(name = "[{index}] {0}")
+	@MethodSource("listenerContainers")
+	void shouldApplyMutatingInterceptorOnReceivedMessage(AbstractMessageListenerContainer listenerContainer) throws Exception {
+		JmsTemplate jmsTemplate = new JmsTemplate(connectionFactory);
+		jmsTemplate.convertAndSend("spring.test.interceptor", "message content");
+		CountDownLatch latch = new CountDownLatch(1);
+		listenerContainer.setConnectionFactory(connectionFactory);
+
+		MessageInterceptor interceptor = (destination, message) -> {
+			assertThat(destination).isInstanceOf(Queue.class).extracting("queueName").isEqualTo("spring.test.interceptor");
+			message.setStringProperty("spring", "framework");
+			return false;
+		};
+		listenerContainer.setReceiveInterceptors(List.of(interceptor));
+		listenerContainer.setDestinationName("spring.test.interceptor");
+		listenerContainer.setMessageListener((MessageListener) message -> {
+			try {
+				assertThat(message.getStringProperty("spring")).isEqualTo("framework");
+			}
+			catch (Throwable ex) {
+				throw new IllegalStateException(ex);
+			}
+			latch.countDown();
+		});
+		listenerContainer.afterPropertiesSet();
+		listenerContainer.start();
+		latch.await(2, TimeUnit.SECONDS);
+
 		listenerContainer.stop();
 		listenerContainer.shutdown();
 	}
