@@ -16,12 +16,16 @@
 
 package org.springframework.web.filter;
 
+import java.io.IOException;
+
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.observation.tck.TestObservationRegistry;
 import io.micrometer.observation.tck.TestObservationRegistryAssert;
+import jakarta.servlet.DispatcherType;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.Test;
@@ -45,18 +49,18 @@ class ServerHttpObservationFilterTests {
 
 	private final TestObservationRegistry observationRegistry = TestObservationRegistry.create();
 
-	private final MockFilterChain mockFilterChain = new MockFilterChain();
-
 	private final MockHttpServletRequest request = new MockHttpServletRequest(HttpMethod.GET.name(), "/resource/test");
 
 	private final MockHttpServletResponse response = new MockHttpServletResponse();
+
+	private MockFilterChain mockFilterChain = new MockFilterChain();
 
 	private ServerHttpObservationFilter filter = new ServerHttpObservationFilter(this.observationRegistry);
 
 
 	@Test
-	void filterShouldNotProcessAsyncDispatch() {
-		assertThat(this.filter.shouldNotFilterAsyncDispatch()).isTrue();
+	void filterShouldProcessAsyncDispatch() {
+		assertThat(this.filter.shouldNotFilterAsyncDispatch()).isFalse();
 	}
 
 	@Test
@@ -70,6 +74,12 @@ class ServerHttpObservationFilterTests {
 		assertThat(context.getResponse()).isEqualTo(this.response);
 		assertThat(context.getPathPattern()).isNull();
 		assertThatHttpObservation().hasLowCardinalityKeyValue("outcome", "SUCCESS").hasBeenStopped();
+	}
+
+	@Test
+	void filterShouldOpenScope() throws Exception {
+		this.mockFilterChain = new MockFilterChain(new ScopeCheckingServlet(this.observationRegistry));
+		filter.doFilter(this.request, this.response, this.mockFilterChain);
 	}
 
 	@Test
@@ -136,9 +146,38 @@ class ServerHttpObservationFilterTests {
 		assertThatHttpObservation().hasLowCardinalityKeyValue("outcome", "SUCCESS").hasBeenStopped();
 	}
 
+	@Test
+	void shouldNotCloseObservationDuringAsyncDispatch() throws Exception {
+		this.mockFilterChain = new MockFilterChain(new ScopeCheckingServlet(this.observationRegistry));
+		this.request.setDispatcherType(DispatcherType.ASYNC);
+		this.filter.doFilter(this.request, this.response, this.mockFilterChain);
+		TestObservationRegistryAssert.assertThat(this.observationRegistry)
+				.hasObservationWithNameEqualTo("http.server.requests")
+				.that().isNotStopped();
+	}
+
 	private TestObservationRegistryAssert.TestObservationRegistryAssertReturningObservationContextAssert assertThatHttpObservation() {
+		TestObservationRegistryAssert.assertThat(this.observationRegistry)
+				.hasNumberOfObservationsWithNameEqualTo("http.server.requests", 1);
+
 		return TestObservationRegistryAssert.assertThat(this.observationRegistry)
-				.hasObservationWithNameEqualTo("http.server.requests").that();
+				.hasObservationWithNameEqualTo("http.server.requests")
+				.that()
+				.hasBeenStopped();
+	}
+
+	static class ScopeCheckingServlet extends HttpServlet {
+
+		private final ObservationRegistry observationRegistry;
+
+		public ScopeCheckingServlet(ObservationRegistry observationRegistry) {
+			this.observationRegistry = observationRegistry;
+		}
+
+		@Override
+		protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+			assertThat(this.observationRegistry.getCurrentObservation()).isNotNull();
+		}
 	}
 
 	static class CustomObservationFilter extends ServerHttpObservationFilter {
