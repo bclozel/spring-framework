@@ -31,6 +31,7 @@ import org.springframework.lang.Nullable;
  * @since 2.5
  * @see SimpleMetadataReaderFactory
  * @see CachingMetadataReaderFactory
+ * @see ClassFileMetadataReaderFactory
  */
 public interface MetadataReaderFactory {
 
@@ -59,8 +60,9 @@ public interface MetadataReaderFactory {
 	 * @since 7.0
 	 */
 	static MetadataReaderFactory create(@Nullable ResourceLoader resourceLoader) {
-		return new SimpleMetadataReaderFactory(resourceLoader);
+		return new ClassFileMetadataReaderFactory(resourceLoader);
 	}
+
 
 	/**
 	 * Create a default {@link MetadataReaderFactory} implementation that's suitable
@@ -69,6 +71,6 @@ public interface MetadataReaderFactory {
 	 * @since 7.0
 	 */
 	static MetadataReaderFactory create(@Nullable ClassLoader classLoader) {
-		return new SimpleMetadataReaderFactory(classLoader);
+		return new ClassFileMetadataReaderFactory(classLoader);
 	}
 }
