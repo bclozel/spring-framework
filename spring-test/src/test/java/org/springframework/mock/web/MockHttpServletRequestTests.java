@@ -37,6 +37,7 @@ import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.TrailerFields;
 import org.springframework.util.FileCopyUtils;
 import org.springframework.util.StreamUtils;
 
@@ -711,6 +712,48 @@ class MockHttpServletRequestTests {
 			String message = "enumeration element #" + ++count;
 			assertThat(enum2.nextElement()).as(message).isEqualTo(enum1.nextElement());
 		}
+	}
+
+	@Test
+	void shouldFailTrailersWhenRequestNotRead() {
+		byte[] bytes = "body".getBytes(Charset.defaultCharset());
+		request.setContent(bytes);
+		assertThat(request.isTrailerFieldsReady()).isFalse();
+		assertThat(request.getInputStream()).isNotNull();
+		assertThatIllegalStateException().isThrownBy(request::getTrailerFields);
+	}
+
+	@Test
+	void shouldHaveEmptyTrailersByDefault() throws Exception {
+		byte[] bytes = "body".getBytes(Charset.defaultCharset());
+		request.setContent(bytes);
+		request.getInputStream().readAllBytes();
+		assertThat(request.isTrailerFieldsReady()).isTrue();
+		assertThat(request.getTrailerFields()).isEmpty();
+	}
+
+	@Test
+	void shouldHaveTrailersAvailableWhenInputStream() throws Exception {
+		byte[] bytes = "body".getBytes(Charset.defaultCharset());
+		TrailerFields trailerFields = new TrailerFields();
+		trailerFields.set("key", "value");
+		request.setTrailerFields(trailerFields);
+		request.setContent(bytes);
+		request.getInputStream().readAllBytes();
+		assertThat(request.isTrailerFieldsReady()).isTrue();
+		assertThat(request.getTrailerFields()).containsEntry("key", "value");
+	}
+
+	@Test
+	void shouldHaveTrailersAvailableWhenReader() throws Exception {
+		byte[] bytes = "body".getBytes(Charset.defaultCharset());
+		TrailerFields trailerFields = new TrailerFields();
+		trailerFields.set("key", "value");
+		request.setTrailerFields(trailerFields);
+		request.setContent(bytes);
+		List<String> body = request.getReader().lines().toList();
+		assertThat(request.isTrailerFieldsReady()).isTrue();
+		assertThat(request.getTrailerFields()).containsEntry("key", "value");
 	}
 
 	static class TestAsyncListener implements AsyncListener {

@@ -23,6 +23,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Locale;
+import java.util.Map;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
@@ -35,6 +36,7 @@ import org.springframework.web.util.WebUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.assertj.core.api.InstanceOfAssertFactories.type;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 import static org.springframework.http.HttpHeaders.CONTENT_LANGUAGE;
@@ -627,6 +629,19 @@ class MockHttpServletResponseTests {
 		response.setContentType(MediaType.APPLICATION_JSON_VALUE);
 		response.getWriter().write(content);
 		assertThat(response.getContentAsString()).isEqualTo(content);
+	}
+
+	@Test
+	void shouldRejectTrailersWhenCommitted() {
+		response.setCommitted(true);
+		assertThatIllegalStateException()
+				.isThrownBy(() -> response.setTrailerFields(() -> Map.of("key", "value")));
+	}
+
+	@Test
+	void shouldWriteTrailers() {
+		response.setTrailerFields(() -> Map.of("key", "value"));
+		assertThat(response.getTrailerFields().get()).containsEntry("key", "value");
 	}
 
 }

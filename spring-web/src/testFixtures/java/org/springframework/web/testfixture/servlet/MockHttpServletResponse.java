@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.function.Supplier;
 
 import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.Cookie;
@@ -126,6 +127,9 @@ public class MockHttpServletResponse implements HttpServletResponse {
 
 	@Nullable
 	private String errorMessage;
+
+	@Nullable
+	private Supplier<Map<String, String>> trailerFieldsSupplier;
 
 
 	//---------------------------------------------------------------------
@@ -812,6 +816,19 @@ public class MockHttpServletResponse implements HttpServletResponse {
 		return this.errorMessage;
 	}
 
+	@Override
+	public void setTrailerFields(Supplier<Map<String, String>> supplier) {
+		if (this.isCommitted()) {
+			throw new IllegalStateException("Response has been committed");
+		}
+		this.trailerFieldsSupplier = supplier;
+	}
+
+	@Override
+	@Nullable
+	public Supplier<Map<String, String>> getTrailerFields() {
+		return this.trailerFieldsSupplier;
+	}
 
 	//---------------------------------------------------------------------
 	// Methods for MockRequestDispatcher

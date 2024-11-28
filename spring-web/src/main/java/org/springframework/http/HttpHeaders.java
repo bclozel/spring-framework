@@ -808,6 +808,47 @@ public class HttpHeaders implements MultiValueMap<String, String>, Serializable 
 	}
 
 	/**
+	 * Set the list of transfer encodings the HTTP client is willing to accept.
+	 * <p>With HTTP/2, only the {@code "trailers"} value is accepted to let the server
+	 * know that trailer fields are accepted. The server can respond with
+	 * a {@link #setTrailerNames(List) Trailer} header listing the trailer fields names
+	 * to be sent after the body.
+	 * @since 7.0
+	 */
+	public void setTransferEncodings(List<String> transferEncodings) {
+		set(TE, StringUtils.collectionToCommaDelimitedString(transferEncodings));
+	}
+
+	/**
+	 * Return the list of transfer encodings the HTTP client is willing to accept.
+	 * <p>If this contains {@code "trailers"}, the client is willing to accept
+	 * trailer fields. The server can then respond with a {@link #setTrailerNames(List) Trailer}
+	 * header listing the trailer fields names to be sent after the body.
+	 * @since 7.0
+	 */
+	public List<String> getTransferEncodings() {
+		return getValuesAsList(TE);
+	}
+
+	/**
+	 * Set the names of the trailer fields that will be sent after the response body.
+	 * @since 7.0
+	 * @see TrailerFields
+	 */
+	public void setTrailerNames(List<String> trailerNames) {
+		set(TRAILER, StringUtils.collectionToCommaDelimitedString(trailerNames));
+	}
+
+	/**
+	 * Return the names of the trailer fields that will be sent after the response body.
+	 * @since 7.0
+	 * @see TrailerFields
+	 */
+	public List<String> getTrailerNames() {
+		return getValuesAsList(TRAILER);
+	}
+
+	/**
 	 * Set the value of the {@linkplain #AUTHORIZATION Authorization} header to
 	 * Basic Authentication based on the given username and password.
 	 * <p>Note that this method only supports characters in the

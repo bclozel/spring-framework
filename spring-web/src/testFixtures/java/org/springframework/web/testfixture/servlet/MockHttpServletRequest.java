@@ -65,6 +65,7 @@ import jakarta.servlet.http.Part;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.TrailerFields;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.LinkedCaseInsensitiveMap;
@@ -277,6 +278,8 @@ public class MockHttpServletRequest implements HttpServletRequest {
 
 	@Nullable
 	private HttpServletMapping httpServletMapping;
+
+	private TrailerFields trailerFields = new TrailerFields();
 
 
 	// ---------------------------------------------------------------------
@@ -1010,6 +1013,17 @@ public class MockHttpServletRequest implements HttpServletRequest {
 		};
 	}
 
+	/**
+	 * Set the trailer fields for this request.
+	 * <p>Trailer fields {@link #isTrailerFieldsReady() are only made available}
+	 * when the request body has been fully read.
+	 * @see #getTrailerFields()
+	 */
+	public void setTrailerFields(TrailerFields trailerFields) {
+		Assert.notNull(trailerFields, "TrailerFields must not be null");
+		this.trailerFields = trailerFields;
+	}
+
 
 	// ---------------------------------------------------------------------
 	// HttpServletRequest interface
@@ -1478,6 +1492,34 @@ public class MockHttpServletRequest implements HttpServletRequest {
 	@Override
 	public <T extends HttpUpgradeHandler> T upgrade(Class<T> handlerClass) throws IOException, ServletException {
 		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public Map<String, String> getTrailerFields() {
+		if (isTrailerFieldsReady()) {
+			return this.trailerFields.asMap();
+		}
+		throw new IllegalStateException("Cannot get trailer fields, request has not been read.");
+	}
+
+	@Override
+	public boolean isTrailerFieldsReady() {
+		return isBodyRead();
+	}
+
+	private boolean isBodyRead() {
+		if (this.inputStream != null) {
+			return this.inputStream.isFinished();
+		}
+		try {
+			if (this.reader != null) {
+				return !this.reader.ready();
+			}
+		}
+		catch (IOException exc) {
+			return true;
+		}
+		return false;
 	}
 
 }
