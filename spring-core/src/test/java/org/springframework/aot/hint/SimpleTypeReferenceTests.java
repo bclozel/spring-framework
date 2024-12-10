@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,36 +31,38 @@ import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
  * Tests for {@link SimpleTypeReference}.
  *
  * @author Stephane Nicoll
+ * @author Brian Clozel
  */
 class SimpleTypeReferenceTests {
 
 
 	@ParameterizedTest
 	@MethodSource("primitivesAndPrimitivesArray")
-	void primitivesAreHandledProperly(TypeReference typeReference, String expectedName) {
-		assertThat(typeReference.getName()).isEqualTo(expectedName);
-		assertThat(typeReference.getCanonicalName()).isEqualTo(expectedName);
+	void primitivesAreHandledProperly(TypeReference typeReference, Class<?> clazz) {
+		assertThat(typeReference.getName()).isEqualTo(clazz.getName());
+		assertThat(typeReference.getCanonicalName()).isEqualTo(clazz.getCanonicalName());
 		assertThat(typeReference.getPackageName()).isEqualTo("java.lang");
 	}
 
 	static Stream<Arguments> primitivesAndPrimitivesArray() {
 		return Stream.of(
-				Arguments.of(SimpleTypeReference.of("boolean"), "boolean"),
-				Arguments.of(SimpleTypeReference.of("byte"), "byte"),
-				Arguments.of(SimpleTypeReference.of("short"), "short"),
-				Arguments.of(SimpleTypeReference.of("int"), "int"),
-				Arguments.of(SimpleTypeReference.of("long"), "long"),
-				Arguments.of(SimpleTypeReference.of("char"), "char"),
-				Arguments.of(SimpleTypeReference.of("float"), "float"),
-				Arguments.of(SimpleTypeReference.of("double"), "double"),
-				Arguments.of(SimpleTypeReference.of("boolean[]"), "boolean[]"),
-				Arguments.of(SimpleTypeReference.of("byte[]"), "byte[]"),
-				Arguments.of(SimpleTypeReference.of("short[]"), "short[]"),
-				Arguments.of(SimpleTypeReference.of("int[]"), "int[]"),
-				Arguments.of(SimpleTypeReference.of("long[]"), "long[]"),
-				Arguments.of(SimpleTypeReference.of("char[]"), "char[]"),
-				Arguments.of(SimpleTypeReference.of("float[]"), "float[]"),
-				Arguments.of(SimpleTypeReference.of("double[]"), "double[]"));
+				Arguments.of(SimpleTypeReference.of("void"), void.class),
+				Arguments.of(SimpleTypeReference.of("boolean"), boolean.class),
+				Arguments.of(SimpleTypeReference.of("byte"), byte.class),
+				Arguments.of(SimpleTypeReference.of("short"), short.class),
+				Arguments.of(SimpleTypeReference.of("int"), int.class),
+				Arguments.of(SimpleTypeReference.of("long"), long.class),
+				Arguments.of(SimpleTypeReference.of("char"), char.class),
+				Arguments.of(SimpleTypeReference.of("float"), float.class),
+				Arguments.of(SimpleTypeReference.of("double"), double.class),
+				Arguments.of(SimpleTypeReference.of("[Z"), boolean[].class),
+				Arguments.of(SimpleTypeReference.of("[B"), byte[].class),
+				Arguments.of(SimpleTypeReference.of("[S"), short[].class),
+				Arguments.of(SimpleTypeReference.of("[I"), int[].class),
+				Arguments.of(SimpleTypeReference.of("[J"), long[].class),
+				Arguments.of(SimpleTypeReference.of("[C"), char[].class),
+				Arguments.of(SimpleTypeReference.of("[F"), float[].class),
+				Arguments.of(SimpleTypeReference.of("[D"), double[].class));
 	}
 
 	@ParameterizedTest
@@ -71,9 +73,10 @@ class SimpleTypeReferenceTests {
 
 	static Stream<Arguments> arrays() {
 		return Stream.of(
-				Arguments.of(SimpleTypeReference.of("java.lang.Object[]"), "java.lang.Object[]"),
-				Arguments.of(SimpleTypeReference.of("java.lang.Integer[]"), "java.lang.Integer[]"),
-				Arguments.of(SimpleTypeReference.of("com.example.Test[]"), "com.example.Test[]"));
+				Arguments.of(SimpleTypeReference.of("[Ljava.lang.Object;"), java.lang.Object[].class.getName()),
+				Arguments.of(SimpleTypeReference.of("[Ljava.lang.Integer;"), java.lang.Integer[].class.getName()),
+				Arguments.of(SimpleTypeReference.of("[[Ljava.lang.Integer;"), java.lang.Integer[][].class.getName()),
+				Arguments.of(SimpleTypeReference.of("[Lorg.springframework.aot.hint.SimpleTypeReferenceTests;"), SimpleTypeReferenceTests[].class.getName()));
 	}
 
 	@Test

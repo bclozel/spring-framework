@@ -65,6 +65,11 @@ public interface TypeReference extends Comparable<TypeReference> {
 	@Nullable
 	TypeReference getEnclosingType();
 
+	@Override
+	default int compareTo(TypeReference other) {
+		return this.getCanonicalName().compareToIgnoreCase(other.getCanonicalName());
+	}
+
 	/**
 	 * Create an instance based on the specified type.
 	 * @param type the type to wrap

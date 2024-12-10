@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,12 @@
 
 package org.springframework.aot.hint;
 
+import java.util.stream.Stream;
+
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -24,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Tests for {@link TypeReference}.
  *
  * @author Stephane Nicoll
+ * @author Brian Clozel
  */
 class TypeReferenceTests {
 
@@ -86,6 +92,34 @@ class TypeReferenceTests {
 	@Test
 	void toStringUsesCanonicalName() {
 		assertThat(TypeReference.of(String.class)).hasToString("java.lang.String");
+	}
+
+	@ParameterizedTest
+	@MethodSource("integerArray")
+	void typedArray(TypeReference type) {
+		assertThat(type.getCanonicalName()).isEqualTo("java.lang.Integer[]");
+		assertThat(type.getName()).isEqualTo("[Ljava.lang.Integer;");
+	}
+
+	static Stream<Arguments> integerArray() {
+		return Stream.of(
+				Arguments.of(TypeReference.of(Integer[].class)),
+				Arguments.of(TypeReference.of("[Ljava.lang.Integer;"))
+		);
+	}
+
+	@ParameterizedTest
+	@MethodSource("integerMatrix")
+	void typedMatrix(TypeReference type) {
+		assertThat(type.getCanonicalName()).isEqualTo("java.lang.Integer[][]");
+		assertThat(type.getName()).isEqualTo("[[Ljava.lang.Integer;");
+	}
+
+	static Stream<Arguments> integerMatrix() {
+		return Stream.of(
+				Arguments.of(TypeReference.of(Integer[][].class)),
+				Arguments.of(TypeReference.of("[[Ljava.lang.Integer;"))
+		);
 	}
 
 }

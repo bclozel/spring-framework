@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 
 package org.springframework.aot.hint;
 
+import java.util.Objects;
+
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
@@ -24,22 +26,15 @@ import org.springframework.util.Assert;
  *
  * @author Stephane Nicoll
  * @author Sebastien Deleuze
+ * @author Brian Clozel
  * @since 6.0
  */
-final class ReflectionTypeReference extends AbstractTypeReference {
+final class ReflectionTypeReference implements TypeReference {
 
 	private final Class<?> type;
 
 	private ReflectionTypeReference(Class<?> type) {
-		super(type.getPackageName(), type.getSimpleName(), getEnclosingClass(type));
 		this.type = type;
-	}
-
-	@Nullable
-	private static TypeReference getEnclosingClass(Class<?> type) {
-		Class<?> candidate = (type.isArray() ? type.componentType().getEnclosingClass() :
-				type.getEnclosingClass());
-		return (candidate != null ? new ReflectionTypeReference(candidate) : null);
 	}
 
 	static ReflectionTypeReference of(Class<?> type) {
@@ -54,9 +49,41 @@ final class ReflectionTypeReference extends AbstractTypeReference {
 	}
 
 	@Override
-	protected boolean isPrimitive() {
-		return this.type.isPrimitive() ||
-				(this.type.isArray() && this.type.componentType().isPrimitive());
+	public String getName() {
+		return this.type.getName();
+	}
+
+	@Override
+	public String getPackageName() {
+		return this.type.getPackage().getName();
+	}
+
+	@Override
+	public String getSimpleName() {
+		return this.type.getSimpleName();
+	}
+
+	@Nullable
+	@Override
+	public TypeReference getEnclosingType() {
+		Class<?> enclosingClass = this.type.getEnclosingClass();
+		return (enclosingClass != null) ? TypeReference.of(enclosingClass) : null;
+	}
+
+	@Override
+	public boolean equals(@Nullable Object other) {
+		return (this == other || (other instanceof TypeReference that &&
+				getCanonicalName().equals(that.getCanonicalName())));
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(getCanonicalName());
+	}
+
+	@Override
+	public String toString() {
+		return getCanonicalName();
 	}
 
 }

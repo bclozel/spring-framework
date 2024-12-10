@@ -116,6 +116,18 @@ class ReflectionHintsWriterTests {
 	}
 
 	@Test
+	void arrayTypes() throws JSONException {
+		ReflectionHints hints = new ReflectionHints();
+		hints.registerType(Integer[].class, builder -> {
+		});
+
+		assertEquals("""
+				[
+					{ "name": "[Ljava.lang.Integer;" }
+				]""", hints);
+	}
+
+	@Test
 	void queriedMethods() throws JSONException {
 		ReflectionHints hints = new ReflectionHints();
 		hints.registerType(Integer.class, builder -> builder.withMethod("parseInt",
