@@ -441,11 +441,15 @@ class AnnotationDrivenBeanDefinitionParser implements BeanDefinitionParser {
 				pathMatcherRef = new RuntimeBeanReference(pathMatchingElement.getAttribute("path-matcher"));
 				preferPathMatcher = true;
 			}
-			pathMatcherRef = MvcNamespaceUtils.registerPathMatcher(pathMatcherRef, context, source);
-			handlerMappingDef.getPropertyValues().add("pathMatcher", pathMatcherRef);
-
 			if (preferPathMatcher) {
+				pathMatcherRef = MvcNamespaceUtils.registerPathMatcher(pathMatcherRef, context, source);
+				handlerMappingDef.getPropertyValues().add("pathMatcher", pathMatcherRef);
 				handlerMappingDef.getPropertyValues().add("patternParser", null);
+			}
+			else if (pathMatchingElement.hasAttribute("pattern-parser")) {
+				RuntimeBeanReference patternParserRef = new RuntimeBeanReference(pathMatchingElement.getAttribute("pattern-parser"));
+				patternParserRef = MvcNamespaceUtils.registerPatternParser(patternParserRef, context, source);
+				handlerMappingDef.getPropertyValues().add("patternParser", patternParserRef);
 			}
 		}
 
