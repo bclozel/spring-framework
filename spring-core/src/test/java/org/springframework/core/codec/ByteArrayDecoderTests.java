@@ -21,9 +21,12 @@ import java.util.function.Consumer;
 
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import org.springframework.core.ResolvableType;
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.core.io.buffer.DataBufferLimitException;
 import org.springframework.core.testfixture.codec.AbstractDecoderTests;
 import org.springframework.util.MimeTypeUtils;
 
@@ -66,6 +69,19 @@ class ByteArrayDecoderTests extends AbstractDecoderTests<ByteArrayDecoder> {
 				.consumeNextWith(expectBytes(this.barBytes))
 				.verifyComplete());
 
+	}
+
+	@Test
+	protected void decodeToMonoOverflow() {
+		Flux<DataBuffer> input = Flux.concat(
+				dataBuffer(this.fooBytes),
+				dataBuffer(this.barBytes));
+
+		this.decoder.setMaxInMemorySize(1);
+		Mono<byte[]> result = this.decoder.decodeToMono(input, ResolvableType.forClass(byte[].class), null, null);
+		StepVerifier.create(result)
+				.expectError(DataBufferLimitException.class)
+				.verify();
 	}
 
 	@Override
