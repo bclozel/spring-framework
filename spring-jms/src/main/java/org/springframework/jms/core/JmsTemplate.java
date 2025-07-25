@@ -16,6 +16,8 @@
 
 package org.springframework.jms.core;
 
+import java.util.List;
+
 import io.micrometer.jakarta9.instrument.jms.JmsInstrumentation;
 import io.micrometer.observation.ObservationRegistry;
 import jakarta.jms.Connection;
@@ -37,6 +39,7 @@ import org.springframework.jms.connection.ConnectionFactoryUtils;
 import org.springframework.jms.connection.JmsResourceHolder;
 import org.springframework.jms.support.JmsAccessor;
 import org.springframework.jms.support.JmsUtils;
+import org.springframework.jms.support.MessageInterceptor;
 import org.springframework.jms.support.QosSettings;
 import org.springframework.jms.support.converter.MessageConverter;
 import org.springframework.jms.support.converter.SimpleMessageConverter;
@@ -122,6 +125,10 @@ public class JmsTemplate extends JmsDestinationAccessor implements JmsOperations
 	private int priority = Message.DEFAULT_PRIORITY;
 
 	private long timeToLive = Message.DEFAULT_TIME_TO_LIVE;
+
+	private @Nullable List<MessageInterceptor> sendInterceptors;
+
+	private @Nullable List<MessageInterceptor> receiveInterceptors;
 
 	private @Nullable ObservationRegistry observationRegistry;
 
@@ -470,6 +477,42 @@ public class JmsTemplate extends JmsDestinationAccessor implements JmsOperations
 	}
 
 	/**
+	 * Configure the list of {@link MessageInterceptor} to use for intercepting
+	 * messages about to be sent. They will be called in the given order.
+	 * @param sendInterceptors the interceptors to use
+	 */
+	public void setSendInterceptors(List<MessageInterceptor> sendInterceptors) {
+		Assert.notNull(sendInterceptors, "sendInterceptors should not be null");
+		this.sendInterceptors = sendInterceptors;
+	}
+
+	/**
+	 * Return the configured list of {@link MessageInterceptor} to use for intercepting
+	 * messages about to be sent.
+	 */
+	public @Nullable List<MessageInterceptor> getSendInterceptors() {
+		return this.sendInterceptors;
+	}
+
+	/**
+	 * Configure the list of {@link MessageInterceptor} to use for intercepting
+	 * messages when received. They will be called in the given order.
+	 * @param receiveInterceptors the interceptors to use
+	 */
+	public void setReceiveInterceptors(List<MessageInterceptor> receiveInterceptors) {
+		Assert.notNull(receiveInterceptors, "receiveInterceptors should not be null");
+		this.receiveInterceptors = receiveInterceptors;
+	}
+
+	/**
+	 * Return the configured list of {@link MessageInterceptor} to use for intercepting
+	 * messages when received.
+	 */
+	public @Nullable List<MessageInterceptor> getReceiveInterceptors() {
+		return this.receiveInterceptors;
+	}
+
+	/**
 	 * Configure the {@link ObservationRegistry} to use for recording JMS observations.
 	 * @param observationRegistry the observation registry to use
 	 * @since 6.1
@@ -633,6 +676,14 @@ public class JmsTemplate extends JmsDestinationAccessor implements JmsOperations
 			Message message = messageCreator.createMessage(session);
 			if (logger.isDebugEnabled()) {
 				logger.debug("Sending created message: " + message);
+			}
+			if (this.sendInterceptors != null) {
+				for (MessageInterceptor interceptor : this.sendInterceptors) {
+					if (!interceptor.intercept(destination, message)) {
+						// do not send this message, marked as ignored by an interceptor
+						return;
+					}
+				}
 			}
 			doSend(producer, message);
 			// Check commit - avoid commit call within a JTA transaction.
@@ -816,6 +867,14 @@ public class JmsTemplate extends JmsDestinationAccessor implements JmsOperations
 				// Manually acknowledge message, if any.
 				if (message != null) {
 					message.acknowledge();
+				}
+			}
+			if (this.receiveInterceptors != null && message != null) {
+				for (MessageInterceptor interceptor : this.receiveInterceptors) {
+					if (!interceptor.intercept(message.getJMSDestination(), message)) {
+						// do not return this message, marked as ignored by an interceptor
+						return null;
+					}
 				}
 			}
 			return message;

@@ -16,8 +16,10 @@
 
 package org.springframework.jms.listener;
 
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
@@ -25,6 +27,7 @@ import io.micrometer.observation.Observation;
 import io.micrometer.observation.tck.TestObservationRegistry;
 import jakarta.jms.Message;
 import jakarta.jms.MessageListener;
+import jakarta.jms.Queue;
 import jakarta.jms.TextMessage;
 import org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory;
 import org.apache.activemq.artemis.junit.EmbeddedActiveMQExtension;
@@ -36,17 +39,18 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import org.springframework.jms.core.JmsTemplate;
+import org.springframework.jms.support.MessageInterceptor;
 
 import static io.micrometer.observation.tck.TestObservationRegistryAssert.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.argumentSet;
 
 /**
- * Observation tests for {@link AbstractMessageListenerContainer} implementations.
+ * Integration tests for {@link AbstractMessageListenerContainer} implementations.
  *
  * @author Brian Clozel
  */
-class MessageListenerContainerObservationTests {
+class MessageListenerContainerIntegrationTests {
 
 	@RegisterExtension
 	EmbeddedActiveMQExtension server = new EmbeddedActiveMQExtension();
@@ -134,6 +138,69 @@ class MessageListenerContainerObservationTests {
 				.hasHighCardinalityKeyValue("messaging.destination.name", "spring.test.observation")
 				.hasLowCardinalityKeyValue("exception", "none");
 		assertThat(registry).hasNumberOfObservationsEqualTo(1);
+		listenerContainer.stop();
+		listenerContainer.shutdown();
+	}
+
+	@ParameterizedTest
+	@MethodSource("listenerContainers")
+	void shouldApplyDiscardingInterceptorOnReceivedMessage(AbstractMessageListenerContainer listenerContainer) throws Exception {
+		JmsTemplate jmsTemplate = new JmsTemplate(connectionFactory);
+		jmsTemplate.convertAndSend("spring.test.interceptor", "message content");
+		CountDownLatch latch = new CountDownLatch(1);
+		AtomicBoolean interceptorCalled = new AtomicBoolean();
+		listenerContainer.setConnectionFactory(connectionFactory);
+
+		MessageInterceptor interceptor = (destination, message) -> {
+			assertThat(destination).isInstanceOf(Queue.class).extracting("queueName").isEqualTo("spring.test.interceptor");
+			interceptorCalled.set(true);
+			latch.countDown();
+			return false;
+		};
+		listenerContainer.setReceiveInterceptors(List.of(interceptor));
+		listenerContainer.setDestinationName("spring.test.interceptor");
+		listenerContainer.setMessageListener((MessageListener) message -> {
+			throw new IllegalStateException("should not invoke message listener");
+		});
+		listenerContainer.afterPropertiesSet();
+		listenerContainer.start();
+		latch.await(2, TimeUnit.SECONDS);
+
+		assertThat(interceptorCalled).isTrue();
+		listenerContainer.stop();
+		listenerContainer.shutdown();
+	}
+
+	@ParameterizedTest
+	@MethodSource("listenerContainers")
+	void shouldApplyMutatingInterceptorOnReceivedMessage(AbstractMessageListenerContainer listenerContainer) throws Exception {
+		JmsTemplate jmsTemplate = new JmsTemplate(connectionFactory);
+		jmsTemplate.convertAndSend("spring.test.interceptor", "message content");
+		CountDownLatch latch = new CountDownLatch(1);
+		listenerContainer.setConnectionFactory(connectionFactory);
+
+		// TODO message is READ ONLY - should we change the contract?
+
+		MessageInterceptor interceptor = (destination, message) -> {
+			assertThat(destination).isInstanceOf(Queue.class).extracting("queueName").isEqualTo("spring.test.interceptor");
+			message.setStringProperty("spring", "framework");
+			return false;
+		};
+		listenerContainer.setReceiveInterceptors(List.of(interceptor));
+		listenerContainer.setDestinationName("spring.test.interceptor");
+		listenerContainer.setMessageListener((MessageListener) message -> {
+			try {
+				assertThat(message.getStringProperty("spring")).isEqualTo("framework");
+			}
+			catch (Throwable ex) {
+				throw new IllegalStateException(ex);
+			}
+			latch.countDown();
+		});
+		listenerContainer.afterPropertiesSet();
+		listenerContainer.start();
+		latch.await(2, TimeUnit.SECONDS);
+
 		listenerContainer.stop();
 		listenerContainer.shutdown();
 	}
