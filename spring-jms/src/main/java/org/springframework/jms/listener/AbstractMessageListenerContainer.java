@@ -35,6 +35,7 @@ import jakarta.jms.Session;
 import jakarta.jms.Topic;
 import org.jspecify.annotations.Nullable;
 
+import org.springframework.jms.core.MessagePostProcessor;
 import org.springframework.jms.support.JmsUtils;
 import org.springframework.jms.support.QosSettings;
 import org.springframework.jms.support.converter.MessageConverter;
@@ -176,6 +177,8 @@ public abstract class AbstractMessageListenerContainer extends AbstractJmsListen
 	private @Nullable MessageConverter messageConverter;
 
 	private @Nullable ExceptionListener exceptionListener;
+
+	private @Nullable MessagePostProcessor messagePostProcessor;
 
 	private @Nullable ErrorHandler errorHandler;
 
@@ -536,6 +539,22 @@ public abstract class AbstractMessageListenerContainer extends AbstractJmsListen
 	}
 
 	/**
+	 * Return the JMS {@code MessagePostProcessor} used for mutating inbound messages
+	 * before they are delivered to the listener.
+	 */
+	public @Nullable MessagePostProcessor getMessagePostProcessor() {
+		return this.messagePostProcessor;
+	}
+
+	/**
+	 * Set the JMS {@code MessagePostProcessor} to use for mutating inbound messages
+	 * before they are delivered to the listener.
+	 */
+	public void setMessagePostProcessor(@Nullable MessagePostProcessor messagePostProcessor) {
+		this.messagePostProcessor = messagePostProcessor;
+	}
+
+	/**
 	 * Set the {@link ErrorHandler} to be invoked in case of any uncaught exceptions
 	 * thrown while processing a {@link Message}.
 	 * <p>By default, there will be <b>no</b> ErrorHandler so that error-level
@@ -750,7 +769,9 @@ public abstract class AbstractMessageListenerContainer extends AbstractJmsListen
 	@SuppressWarnings("rawtypes")
 	protected void invokeListener(Session session, Message message) throws JMSException {
 		Object listener = getMessageListener();
-
+		if (this.messagePostProcessor != null) {
+			message = this.messagePostProcessor.postProcessMessage(message);
+		}
 		if (listener instanceof SessionAwareMessageListener sessionAwareMessageListener) {
 			doInvokeListener(sessionAwareMessageListener, session, message);
 		}

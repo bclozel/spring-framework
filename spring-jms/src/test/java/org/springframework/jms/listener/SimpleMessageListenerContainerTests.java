@@ -18,6 +18,7 @@ package org.springframework.jms.listener;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import jakarta.jms.Connection;
 import jakarta.jms.ConnectionFactory;
@@ -291,6 +292,48 @@ class SimpleMessageListenerContainerTests {
 		verify(connection).setExceptionListener(this.container);
 		verify(connection).start();
 		verify(exceptionListener).onException(theException);
+	}
+
+	@Test
+	void testRegisteredMessagePostProcessorIsInvoked() throws Exception {
+		final SimpleMessageConsumer messageConsumer = new SimpleMessageConsumer();
+
+		Session session = mock();
+		// Queue gets created in order to create MessageConsumer for that Destination...
+		given(session.createQueue(DESTINATION_NAME)).willReturn(QUEUE_DESTINATION);
+		// and then the MessageConsumer gets created...
+		given(session.createConsumer(QUEUE_DESTINATION, null)).willReturn(messageConsumer);  // no MessageSelector...
+
+		Connection connection = mock();
+		// session gets created in order to register MessageListener...
+		given(connection.createSession(this.container.isSessionTransacted(),
+				this.container.getSessionAcknowledgeMode())).willReturn(session);
+		// and the connection is start()ed after the listener is registered...
+
+		ConnectionFactory connectionFactory = mock();
+		given(connectionFactory.createConnection()).willReturn(connection);
+
+		this.container.setConnectionFactory(connectionFactory);
+		this.container.setDestinationName(DESTINATION_NAME);
+
+		AtomicBoolean postProcessorInvoked = new AtomicBoolean();
+		this.container.setMessagePostProcessor(msg -> {
+			postProcessorInvoked.set(true);
+			return msg;
+		});
+		this.container.afterPropertiesSet();
+		this.container.start();
+
+		// manually trigger an Exception with the above bad MessageListener...
+		final Message message = mock();
+
+		// a Throwable from a MessageListener MUST simply be swallowed...
+		messageConsumer.sendMessage(message);
+
+
+		verify(connection).setExceptionListener(this.container);
+		verify(connection).start();
+		assertThat(postProcessorInvoked).isTrue();
 	}
 
 	@Test

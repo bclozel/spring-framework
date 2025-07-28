@@ -20,18 +20,19 @@ import jakarta.jms.JMSException;
 import jakarta.jms.Message;
 
 /**
- * To be used with JmsTemplate's send method that converts an object to a message.
+ * Post-processes a {@link Message}. This is the JMS equivalent of the spring-messaging
+ * {@link org.springframework.messaging.core.MessagePostProcessor}.
  *
- * <p>This allows for further modification of the message after it has been processed
- * by the converter and is useful for setting JMS headers and properties.
- *
- * <p>Often implemented as a lambda expression or as an anonymous inner class.
+ * <p>This is involved right before a {@link JmsTemplate} sends a message over the wire, for setting additional
+ * JMS properties and headers. On the {@link org.springframework.jms.listener.AbstractMessageListenerContainer} side,
+ * this is triggered right after receiving a message, for collecting information from a {@code Message} and updating
+ * a local context accordingly.
  *
  * @author Mark Pollack
  * @since 1.1
  * @see JmsTemplate#convertAndSend(String, Object, MessagePostProcessor)
  * @see JmsTemplate#convertAndSend(jakarta.jms.Destination, Object, MessagePostProcessor)
- * @see org.springframework.jms.support.converter.MessageConverter
+ * @see org.springframework.jms.listener.AbstractMessageListenerContainer#setMessagePostProcessor(MessagePostProcessor) 
  */
 @FunctionalInterface
 public interface MessagePostProcessor {
