@@ -167,10 +167,19 @@ public interface HttpMessageConverters extends Iterable<HttpMessageConverter<?>>
 		T addCustomConverter(HttpMessageConverter<?> customConverter);
 
 		/**
+		 * Add a consumer for {@link PostProcessor post-processing} the collection of selected message converters.
+		 * <p>All message converters in the resulting collection will be
+		 * {@link #configureMessageConverters(Consumer) configured}.</p>
+		 * @param postProcessor the postProcessor to use
+		 */
+		T postProcess(Consumer<PostProcessor> postProcessor);
+
+		/**
 		 * Add a consumer for configuring the selected message converters.
 		 * @param configurer the configurer to use
 		 */
 		T configureMessageConverters(Consumer<HttpMessageConverter<?>> configurer);
+
 
 		/**
 		 * Build and return the {@link HttpMessageConverters} instance configured by this builder.
@@ -190,6 +199,21 @@ public interface HttpMessageConverters extends Iterable<HttpMessageConverter<?>>
 	 * Server builder for an {@link HttpMessageConverters} instance.
 	 */
 	interface ServerBuilder extends Builder<ServerBuilder> {
+	}
+
+	/**
+	 * Post process the collection of message converters added by the builder.
+	 */
+	interface PostProcessor {
+
+		void addFirst(HttpMessageConverter<?> converter);
+
+		void addLast(HttpMessageConverter<?> converter);
+
+		void addBefore(HttpMessageConverter<?> converter, Class<HttpMessageConverter<?>> converterType);
+
+		void addAfter(HttpMessageConverter<?> converter, Class<HttpMessageConverter<?>> converterType);
+
 	}
 
 }

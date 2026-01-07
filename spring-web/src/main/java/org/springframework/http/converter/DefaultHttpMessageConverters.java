@@ -122,6 +122,8 @@ class DefaultHttpMessageConverters implements HttpMessageConverters {
 
 		@Nullable Consumer<HttpMessageConverter<?>> configurer;
 
+		@Nullable Consumer<PostProcessor> postProcessor;
+
 		@Nullable HttpMessageConverter<?> kotlinJsonConverter;
 
 		@Nullable HttpMessageConverter<?> jsonConverter;
@@ -224,6 +226,10 @@ class DefaultHttpMessageConverters implements HttpMessageConverters {
 
 		void addMessageConverterConfigurer(Consumer<HttpMessageConverter<?>> configurer) {
 			this.configurer = (this.configurer != null) ? configurer.andThen(this.configurer) : configurer;
+		}
+
+		void addPostProcessor(Consumer<PostProcessor> postProcessor) {
+			this.postProcessor = (this.postProcessor != null) ? postProcessor.andThen(this.postProcessor) : postProcessor;
 		}
 
 		List<HttpMessageConverter<?>> getBaseConverters() {
@@ -443,6 +449,12 @@ class DefaultHttpMessageConverters implements HttpMessageConverters {
 		}
 
 		@Override
+		public ClientBuilder postProcess(Consumer<PostProcessor> postProcessor) {
+			addPostProcessor(postProcessor);
+			return this;
+		}
+
+		@Override
 		public HttpMessageConverters build() {
 			if (this.registerDefaults) {
 				this.resourceConverter = new ResourceHttpMessageConverter(false);
@@ -462,6 +474,9 @@ class DefaultHttpMessageConverters implements HttpMessageConverters {
 			}
 			if (this.registerDefaults) {
 				allConverters.addAll(this.getCoreConverters());
+			}
+			if (this.postProcessor !=null) {
+				this.postProcessor.accept(new DefaultPostProcessor(allConverters));
 			}
 			if (this.configurer != null) {
 				allConverters.forEach(this.configurer);
@@ -540,6 +555,12 @@ class DefaultHttpMessageConverters implements HttpMessageConverters {
 		}
 
 		@Override
+		public ServerBuilder postProcess(Consumer<PostProcessor> postProcessor) {
+			addPostProcessor(postProcessor);
+			return this;
+		}
+
+		@Override
 		public HttpMessageConverters build() {
 			if (this.registerDefaults) {
 				this.resourceConverter = new ResourceHttpMessageConverter();
@@ -564,10 +585,50 @@ class DefaultHttpMessageConverters implements HttpMessageConverters {
 			if (this.registerDefaults) {
 				allConverters.addAll(this.getCoreConverters());
 			}
+			if (this.postProcessor !=null) {
+				this.postProcessor.accept(new DefaultPostProcessor(allConverters));
+			}
 			if (this.configurer != null) {
 				allConverters.forEach(this.configurer);
 			}
 			return new DefaultHttpMessageConverters(allConverters);
+		}
+	}
+
+	static class DefaultPostProcessor implements PostProcessor {
+
+		private final List<HttpMessageConverter<?>> messageConverters;
+
+		DefaultPostProcessor(List<HttpMessageConverter<?>> messageConverters) {
+			this.messageConverters = messageConverters;
+		}
+
+		@Override
+		public void addFirst(HttpMessageConverter<?> converter) {
+			this.messageConverters.addFirst(converter);
+		}
+
+		@Override
+		public void addLast(HttpMessageConverter<?> converter) {
+			this.messageConverters.addLast(converter);
+		}
+
+		@Override
+		public void addBefore(HttpMessageConverter<?> converter, Class<HttpMessageConverter<?>> converterType) {
+			for (int i = 0; i < this.messageConverters.size(); i++) {
+				if (converterType.isAssignableFrom(this.messageConverters.get(i).getClass())) {
+					this.messageConverters.add(i, converter );
+				}
+			}
+		}
+
+		@Override
+		public void addAfter(HttpMessageConverter<?> converter, Class<HttpMessageConverter<?>> converterType) {
+			for (int i = 0; i < this.messageConverters.size(); i++) {
+				if (converterType.isAssignableFrom(this.messageConverters.get(i).getClass())) {
+					this.messageConverters.add(i + 1, converter );
+				}
+			}
 		}
 	}
 
