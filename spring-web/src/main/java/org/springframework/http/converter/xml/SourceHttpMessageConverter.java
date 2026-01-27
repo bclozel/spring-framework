@@ -149,6 +149,11 @@ public class SourceHttpMessageConverter<T extends Source> extends AbstractHttpMe
 	}
 
 	@Override
+	public boolean canWriteRepeatedly(T t, @Nullable MediaType contentType) {
+		return t instanceof DOMSource;
+	}
+
+	@Override
 	@SuppressWarnings("unchecked")
 	protected T readInternal(Class<? extends T> clazz, HttpInputMessage inputMessage)
 			throws IOException, HttpMessageNotReadableException {
@@ -293,8 +298,9 @@ public class SourceHttpMessageConverter<T extends Source> extends AbstractHttpMe
 	}
 
 	@Override
+	@SuppressWarnings("removal")
 	protected boolean supportsRepeatableWrites(T t) {
-		return t instanceof DOMSource;
+		return canWriteRepeatedly(t, null);
 	}
 
 

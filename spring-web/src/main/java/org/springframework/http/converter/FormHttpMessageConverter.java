@@ -486,7 +486,7 @@ public class FormHttpMessageConverter implements HttpMessageConverter<MultiValue
 		outputMessage.getHeaders().setContentType(contentType);
 
 		if (outputMessage instanceof StreamingHttpOutputMessage streamingOutputMessage) {
-			boolean repeatable = checkPartsRepeatable(parts);
+			boolean repeatable = checkPartsRepeatable(parts, contentType);
 			streamingOutputMessage.setBody(new StreamingHttpOutputMessage.Body() {
 				@Override
 				public void writeTo(OutputStream outputStream) throws IOException {
@@ -506,7 +506,7 @@ public class FormHttpMessageConverter implements HttpMessageConverter<MultiValue
 	}
 
 	@SuppressWarnings({"unchecked", "ConstantValue"})
-	private <T> boolean checkPartsRepeatable(MultiValueMap<String, Object> map) {
+	private <T> boolean checkPartsRepeatable(MultiValueMap<String, Object> map, MediaType contentType) {
 		return map.entrySet().stream().allMatch(e -> e.getValue().stream().filter(Objects::nonNull).allMatch(part -> {
 			HttpHeaders headers = null;
 			Object body = part;
@@ -515,9 +515,8 @@ public class FormHttpMessageConverter implements HttpMessageConverter<MultiValue
 				body = entity.getBody();
 				Assert.state(body != null, "Empty body for part '" + e.getKey() + "': " + part);
 			}
-			HttpMessageConverter<?> converter = findConverterFor(e.getKey(), headers, body);
-			return (converter instanceof AbstractHttpMessageConverter<?> ahmc &&
-					((AbstractHttpMessageConverter<T>) ahmc).supportsRepeatableWrites((T) body));
+			HttpMessageConverter<T> converter = (HttpMessageConverter<T>) findConverterFor(e.getKey(), headers, body);
+			return converter != null && converter.canWriteRepeatedly((T) body, contentType);
 		}));
 	}
 
