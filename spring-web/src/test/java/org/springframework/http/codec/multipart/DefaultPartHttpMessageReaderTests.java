@@ -80,7 +80,7 @@ class DefaultPartHttpMessageReaderTests {
 	@ParameterizedDefaultPartHttpMessageReaderTest
 	void simple(DefaultPartHttpMessageReader reader) throws InterruptedException {
 		MockServerHttpRequest request = createRequest(
-				new ClassPathResource("simple.multipart", getClass()), "simple-boundary");
+				"simple.multipart", "simple-boundary");
 
 		Flux<Part> result = reader.read(forClass(Part.class), request, emptyMap());
 
@@ -98,7 +98,7 @@ class DefaultPartHttpMessageReaderTests {
 	@ParameterizedDefaultPartHttpMessageReaderTest
 	void noHeaders(DefaultPartHttpMessageReader reader) {
 		MockServerHttpRequest request = createRequest(
-				new ClassPathResource("no-header.multipart", getClass()), "boundary");
+				"no-header.multipart", "boundary");
 		Flux<Part> result = reader.read(forClass(Part.class), request, emptyMap());
 
 			StepVerifier.create(result)
@@ -112,7 +112,7 @@ class DefaultPartHttpMessageReaderTests {
 	@ParameterizedDefaultPartHttpMessageReaderTest
 	void noEndBoundary(DefaultPartHttpMessageReader reader) {
 		MockServerHttpRequest request = createRequest(
-				new ClassPathResource("no-end-boundary.multipart", getClass()), "boundary");
+				"no-end-boundary.multipart", "boundary");
 
 		Flux<Part> result = reader.read(forClass(Part.class), request, emptyMap());
 
@@ -128,7 +128,7 @@ class DefaultPartHttpMessageReaderTests {
 	@ParameterizedDefaultPartHttpMessageReaderTest
 	void garbage(DefaultPartHttpMessageReader reader) {
 		MockServerHttpRequest request = createRequest(
-				new ClassPathResource("garbage-1.multipart", getClass()), "boundary");
+				"garbage-1.multipart", "boundary");
 
 		Flux<Part> result = reader.read(forClass(Part.class), request, emptyMap());
 
@@ -140,7 +140,7 @@ class DefaultPartHttpMessageReaderTests {
 	@ParameterizedDefaultPartHttpMessageReaderTest
 	void noEndHeader(DefaultPartHttpMessageReader reader) {
 		MockServerHttpRequest request = createRequest(
-				new ClassPathResource("no-end-header.multipart", getClass()), "boundary");
+				"no-end-header.multipart", "boundary");
 		Flux<Part> result = reader.read(forClass(Part.class), request, emptyMap());
 
 		StepVerifier.create(result)
@@ -151,7 +151,7 @@ class DefaultPartHttpMessageReaderTests {
 	@ParameterizedDefaultPartHttpMessageReaderTest
 	void noEndBody(DefaultPartHttpMessageReader reader) {
 		MockServerHttpRequest request = createRequest(
-				new ClassPathResource("no-end-body.multipart", getClass()), "boundary");
+				"no-end-body.multipart", "boundary");
 		Flux<Part> result = reader.read(forClass(Part.class), request, emptyMap());
 
 		StepVerifier.create(result)
@@ -162,7 +162,7 @@ class DefaultPartHttpMessageReaderTests {
 	@ParameterizedDefaultPartHttpMessageReaderTest
 	void cancelPart(DefaultPartHttpMessageReader reader) {
 		MockServerHttpRequest request = createRequest(
-				new ClassPathResource("simple.multipart", getClass()), "simple-boundary");
+				"simple.multipart", "simple-boundary");
 		Flux<Part> result = reader.read(forClass(Part.class), request, emptyMap());
 
 		StepVerifier.create(result, 1)
@@ -174,7 +174,7 @@ class DefaultPartHttpMessageReaderTests {
 	@ParameterizedDefaultPartHttpMessageReaderTest
 	void cancelBody(DefaultPartHttpMessageReader reader) throws Exception {
 		MockServerHttpRequest request = createRequest(
-				new ClassPathResource("simple.multipart", getClass()), "simple-boundary");
+				"simple.multipart", "simple-boundary");
 		Flux<Part> result = reader.read(forClass(Part.class), request, emptyMap());
 
 		CountDownLatch latch = new CountDownLatch(1);
@@ -191,7 +191,7 @@ class DefaultPartHttpMessageReaderTests {
 	@ParameterizedDefaultPartHttpMessageReaderTest
 	void cancelBodyThenPart(DefaultPartHttpMessageReader reader) {
 		MockServerHttpRequest request = createRequest(
-				new ClassPathResource("simple.multipart", getClass()), "simple-boundary");
+				"simple.multipart", "simple-boundary");
 		Flux<Part> result = reader.read(forClass(Part.class), request, emptyMap());
 
 		StepVerifier.create(result, 1)
@@ -202,26 +202,26 @@ class DefaultPartHttpMessageReaderTests {
 
 	@ParameterizedDefaultPartHttpMessageReaderTest
 	void firefox(DefaultPartHttpMessageReader reader) throws InterruptedException {
-		testBrowser(reader, new ClassPathResource("firefox.multipart", getClass()),
+		testBrowser(reader, "firefox.multipart",
 				"---------------------------18399284482060392383840973206");
 	}
 
 	@ParameterizedDefaultPartHttpMessageReaderTest
 	void chrome(DefaultPartHttpMessageReader reader) throws InterruptedException {
-		testBrowser(reader, new ClassPathResource("chrome.multipart", getClass()),
+		testBrowser(reader, "chrome.multipart",
 				"----WebKitFormBoundaryEveBLvRT65n21fwU");
 	}
 
 	@ParameterizedDefaultPartHttpMessageReaderTest
 	void safari(DefaultPartHttpMessageReader reader) throws InterruptedException {
-		testBrowser(reader, new ClassPathResource("safari.multipart", getClass()),
+		testBrowser(reader, "safari.multipart",
 				"----WebKitFormBoundaryG8fJ50opQOML0oGD");
 	}
 
 	@Test
 	void tooManyParts() throws InterruptedException {
 		MockServerHttpRequest request = createRequest(
-				new ClassPathResource("simple.multipart", getClass()), "simple-boundary");
+				"simple.multipart", "simple-boundary");
 
 		DefaultPartHttpMessageReader reader = new DefaultPartHttpMessageReader();
 		reader.setMaxParts(1);
@@ -241,7 +241,7 @@ class DefaultPartHttpMessageReaderTests {
 	@ParameterizedDefaultPartHttpMessageReaderTest
 	void quotedBoundary(DefaultPartHttpMessageReader reader) throws InterruptedException {
 		MockServerHttpRequest request = createRequest(
-				new ClassPathResource("simple.multipart", getClass()), "\"simple-boundary\"");
+				"simple.multipart", "\"simple-boundary\"");
 
 		Flux<Part> result = reader.read(forClass(Part.class), request, emptyMap());
 
@@ -259,7 +259,7 @@ class DefaultPartHttpMessageReaderTests {
 	@ParameterizedDefaultPartHttpMessageReaderTest
 	void utf8Headers(DefaultPartHttpMessageReader reader) throws InterruptedException {
 		MockServerHttpRequest request = createRequest(
-				new ClassPathResource("utf8.multipart", getClass()), "\"simple-boundary\"");
+				"utf8.multipart", "\"simple-boundary\"");
 
 		Flux<Part> result = reader.read(forClass(Part.class), request, emptyMap());
 
@@ -278,7 +278,7 @@ class DefaultPartHttpMessageReaderTests {
 	@Test
 	void exceedHeaderLimit() throws InterruptedException {
 		Flux<DataBuffer> body = DataBufferUtils
-				.readByteChannel((new ClassPathResource("files.multipart", getClass()))::readableChannel, bufferFactory, 282);
+				.readByteChannel(new ClassPathResource("/org/springframework/http/multipart/files.multipart")::readableChannel, bufferFactory, 282);
 
 		MediaType contentType = new MediaType("multipart", "form-data", singletonMap("boundary", "----WebKitFormBoundaryG8fJ50opQOML0oGD"));
 		MockServerHttpRequest request = MockServerHttpRequest.post("/")
@@ -303,7 +303,7 @@ class DefaultPartHttpMessageReaderTests {
 	@ParameterizedDefaultPartHttpMessageReaderTest
 	void emptyLastPart(DefaultPartHttpMessageReader reader) throws InterruptedException {
 		MockServerHttpRequest request = createRequest(
-				new ClassPathResource("empty-part.multipart", getClass()), "LiG0chJ0k7YtLt-FzTklYFgz50i88xJCW5jD");
+				"empty-part.multipart", "LiG0chJ0k7YtLt-FzTklYFgz50i88xJCW5jD");
 
 		Flux<Part> result = reader.read(forClass(Part.class), request, emptyMap());
 
@@ -317,10 +317,10 @@ class DefaultPartHttpMessageReaderTests {
 	}
 
 
-	private void testBrowser(DefaultPartHttpMessageReader reader, Resource resource, String boundary)
+	private void testBrowser(DefaultPartHttpMessageReader reader, String fileName, String boundary)
 			throws InterruptedException {
 
-		MockServerHttpRequest request = createRequest(resource, boundary);
+		MockServerHttpRequest request = createRequest(fileName, boundary);
 
 		Flux<Part> result = reader.read(forClass(Part.class), request, emptyMap());
 		CountDownLatch latch = new CountDownLatch(3);
@@ -334,7 +334,8 @@ class DefaultPartHttpMessageReaderTests {
 		latch.await();
 	}
 
-	private MockServerHttpRequest createRequest(Resource resource, String boundary) {
+	private MockServerHttpRequest createRequest(String fileName, String boundary) {
+		Resource resource = new ClassPathResource("/org/springframework/http/multipart/" + fileName);
 		Flux<DataBuffer> body = DataBufferUtils
 				.readByteChannel(resource::readableChannel, bufferFactory, BUFFER_SIZE);
 

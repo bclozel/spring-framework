@@ -66,7 +66,7 @@ class PartEventHttpMessageReaderTests {
 	@Test
 	void simple() {
 		MockServerHttpRequest request = createRequest(
-				new ClassPathResource("simple.multipart", getClass()), "simple-boundary");
+				"simple.multipart", "simple-boundary");
 
 		Flux<PartEvent> result = this.reader.read(forClass(PartEvent.class), request, emptyMap());
 
@@ -80,7 +80,7 @@ class PartEventHttpMessageReaderTests {
 	@Test
 	void noHeaders() {
 		MockServerHttpRequest request = createRequest(
-				new ClassPathResource("no-header.multipart", getClass()), "boundary");
+				"no-header.multipart", "boundary");
 		Flux<PartEvent> result = this.reader.read(forClass(PartEvent.class), request, emptyMap());
 
 		StepVerifier.create(result)
@@ -91,7 +91,7 @@ class PartEventHttpMessageReaderTests {
 	@Test
 	void noEndBoundary() {
 		MockServerHttpRequest request = createRequest(
-				new ClassPathResource("no-end-boundary.multipart", getClass()), "boundary");
+				"no-end-boundary.multipart", "boundary");
 
 		Flux<PartEvent> result = this.reader.read(forClass(PartEvent.class), request, emptyMap());
 
@@ -103,7 +103,7 @@ class PartEventHttpMessageReaderTests {
 	@Test
 	void garbage() {
 		MockServerHttpRequest request = createRequest(
-				new ClassPathResource("garbage-1.multipart", getClass()), "boundary");
+				"garbage-1.multipart", "boundary");
 
 		Flux<PartEvent> result = this.reader.read(forClass(PartEvent.class), request, emptyMap());
 
@@ -116,7 +116,7 @@ class PartEventHttpMessageReaderTests {
 	@Test
 	void noEndHeader() {
 		MockServerHttpRequest request = createRequest(
-				new ClassPathResource("no-end-header.multipart", getClass()), "boundary");
+				"no-end-header.multipart", "boundary");
 		Flux<PartEvent> result = this.reader.read(forClass(PartEvent.class), request, emptyMap());
 
 		StepVerifier.create(result)
@@ -127,7 +127,7 @@ class PartEventHttpMessageReaderTests {
 	@Test
 	void noEndBody() {
 		MockServerHttpRequest request = createRequest(
-				new ClassPathResource("no-end-body.multipart", getClass()), "boundary");
+				"no-end-body.multipart", "boundary");
 		Flux<PartEvent> result = this.reader.read(forClass(PartEvent.class), request, emptyMap());
 
 		StepVerifier.create(result)
@@ -138,7 +138,7 @@ class PartEventHttpMessageReaderTests {
 	@Test
 	void noBody() {
 		MockServerHttpRequest request = createRequest(
-				new ClassPathResource("no-body.multipart", getClass()), "boundary");
+				"no-body.multipart", "boundary");
 		Flux<PartEvent> result = this.reader.read(forClass(PartEvent.class), request, emptyMap());
 
 		StepVerifier.create(result)
@@ -151,7 +151,7 @@ class PartEventHttpMessageReaderTests {
 	@Test
 	void cancel() {
 		MockServerHttpRequest request = createRequest(
-				new ClassPathResource("simple.multipart", getClass()), "simple-boundary");
+				"simple.multipart", "simple-boundary");
 		Flux<PartEvent> result = this.reader.read(forClass(PartEvent.class), request, emptyMap());
 
 		StepVerifier.create(result, 3)
@@ -165,7 +165,7 @@ class PartEventHttpMessageReaderTests {
 	@Test
 	void firefox() {
 
-		MockServerHttpRequest request = createRequest(new ClassPathResource("firefox.multipart", getClass()),
+		MockServerHttpRequest request = createRequest("firefox.multipart",
 				"---------------------------18399284482060392383840973206");
 
 		Flux<PartEvent> result = this.reader.read(forClass(PartEvent.class), request, emptyMap());
@@ -187,7 +187,7 @@ class PartEventHttpMessageReaderTests {
 	@Test
 	void chrome() {
 
-		MockServerHttpRequest request = createRequest(new ClassPathResource("chrome.multipart", getClass()),
+		MockServerHttpRequest request = createRequest("chrome.multipart",
 				"----WebKitFormBoundaryEveBLvRT65n21fwU");
 
 		Flux<PartEvent> result = this.reader.read(forClass(PartEvent.class), request, emptyMap());
@@ -208,7 +208,7 @@ class PartEventHttpMessageReaderTests {
 	@Test
 	void safari() {
 
-		MockServerHttpRequest request = createRequest(new ClassPathResource("safari.multipart", getClass()),
+		MockServerHttpRequest request = createRequest("safari.multipart",
 				"----WebKitFormBoundaryG8fJ50opQOML0oGD");
 
 		Flux<PartEvent> result = this.reader.read(forClass(PartEvent.class), request, emptyMap());
@@ -229,7 +229,7 @@ class PartEventHttpMessageReaderTests {
 	@Test
 	void tooManyParts() {
 		MockServerHttpRequest request = createRequest(
-				new ClassPathResource("simple.multipart", getClass()), "simple-boundary");
+				"simple.multipart", "simple-boundary");
 
 		PartEventHttpMessageReader reader = new PartEventHttpMessageReader();
 		reader.setMaxParts(1);
@@ -244,7 +244,7 @@ class PartEventHttpMessageReaderTests {
 
 	@Test
 	void partSizeTooLarge() {
-		MockServerHttpRequest request = createRequest(new ClassPathResource("safari.multipart", getClass()),
+		MockServerHttpRequest request = createRequest("safari.multipart",
 				"----WebKitFormBoundaryG8fJ50opQOML0oGD");
 
 		PartEventHttpMessageReader reader = new PartEventHttpMessageReader();
@@ -262,7 +262,7 @@ class PartEventHttpMessageReaderTests {
 	@Test
 	void formPartTooLarge() {
 		MockServerHttpRequest request = createRequest(
-				new ClassPathResource("simple.multipart", getClass()), "simple-boundary");
+				"simple.multipart", "simple-boundary");
 
 		PartEventHttpMessageReader reader = new PartEventHttpMessageReader();
 		reader.setMaxInMemorySize(40);
@@ -277,7 +277,7 @@ class PartEventHttpMessageReaderTests {
 	@Test
 	void utf8Headers() {
 		MockServerHttpRequest request = createRequest(
-				new ClassPathResource("utf8.multipart", getClass()), "\"simple-boundary\"");
+				"utf8.multipart", "\"simple-boundary\"");
 
 		Flux<PartEvent> result = this.reader.read(forClass(PartEvent.class), request, emptyMap());
 
@@ -290,7 +290,7 @@ class PartEventHttpMessageReaderTests {
 	@Test
 	void exceedHeaderLimit() {
 		Flux<DataBuffer> body = DataBufferUtils
-				.readByteChannel((new ClassPathResource("files.multipart", getClass()))::readableChannel, bufferFactory,
+				.readByteChannel((new ClassPathResource("/org/springframework/http/multipart/files.multipart"))::readableChannel, bufferFactory,
 						282);
 
 		MediaType contentType = new MediaType("multipart", "form-data",
@@ -309,7 +309,8 @@ class PartEventHttpMessageReaderTests {
 				.verifyComplete();
 	}
 
-	private MockServerHttpRequest createRequest(Resource resource, String boundary) {
+	private MockServerHttpRequest createRequest(String fileName, String boundary) {
+		Resource resource = new ClassPathResource("/org/springframework/http/multipart/" + fileName);
 		Flux<DataBuffer> body = DataBufferUtils
 				.readByteChannel(resource::readableChannel, bufferFactory, BUFFER_SIZE);
 
