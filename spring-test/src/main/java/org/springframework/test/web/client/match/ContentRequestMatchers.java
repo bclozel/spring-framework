@@ -35,6 +35,7 @@ import org.hamcrest.Matcher;
 import org.jspecify.annotations.Nullable;
 import org.w3c.dom.Node;
 
+import org.springframework.core.ResolvableType;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -180,7 +181,8 @@ public class ContentRequestMatchers {
 			MockClientHttpRequest mockRequest = (MockClientHttpRequest) request;
 			MockHttpInputMessage message = new MockHttpInputMessage(mockRequest.getBodyAsBytes());
 			message.getHeaders().putAll(mockRequest.getHeaders());
-			MultiValueMap<String, String> actualMap = new FormHttpMessageConverter().read(null, message);
+			MultiValueMap<String, String> actualMap = new FormHttpMessageConverter()
+					.read(ResolvableType.forClassWithGenerics(MultiValueMap.class, String.class, String.class), message, null);
 			if (containsExactly) {
 				assertEquals("Form data", expectedMap, actualMap);
 			}

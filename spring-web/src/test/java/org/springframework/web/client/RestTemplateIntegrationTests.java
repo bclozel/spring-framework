@@ -53,8 +53,8 @@ import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.http.client.JettyClientHttpRequestFactory;
 import org.springframework.http.client.ReactorClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
-import org.springframework.http.converter.FormHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJacksonValue;
+import org.springframework.http.converter.multipart.MultipartHttpMessageConverter;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
@@ -348,23 +348,25 @@ class RestTemplateIntegrationTests extends AbstractMockWebServerTests {
 
 	private void addSupportedMediaTypeToFormHttpMessageConverter(MediaType mediaType) {
 		this.template.getMessageConverters().stream()
-				.filter(FormHttpMessageConverter.class::isInstance)
-				.map(FormHttpMessageConverter.class::cast)
+				.filter(MultipartHttpMessageConverter.class::isInstance)
+				.map(MultipartHttpMessageConverter.class::cast)
 				.findFirst()
-				.orElseThrow(() -> new IllegalStateException("Failed to find FormHttpMessageConverter"))
+				.orElseThrow(() -> new IllegalStateException("Failed to find MultipartHttpMessageConverter"))
 				.addSupportedMediaTypes(mediaType);
 	}
 
 	@ParameterizedRestTemplateTest
 	void form(ClientHttpRequestFactory clientHttpRequestFactory) {
 		setUpClient(clientHttpRequestFactory);
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
 		MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
 		form.add("name 1", "value 1");
 		form.add("name 2", "value 2+1");
 		form.add("name 2", "value 2+2");
 
-		template.postForLocation(baseUrl + "/form", form);
+		template.exchange(baseUrl + "/form", POST, new HttpEntity<>(form, headers), Void.class);
 	}
 
 	@ParameterizedRestTemplateTest

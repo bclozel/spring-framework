@@ -51,7 +51,7 @@ import org.springframework.http.converter.ByteArrayHttpMessageConverter;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.ResourceHttpMessageConverter;
 import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
-import org.springframework.http.converter.support.AllEncompassingFormHttpMessageConverter;
+import org.springframework.http.converter.multipart.MultipartHttpMessageConverter;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.FileSystemUtils;
 import org.springframework.util.LinkedMultiValueMap;
@@ -135,8 +135,7 @@ class RequestPartIntegrationTests {
 		converters.add(new ResourceHttpMessageConverter());
 		converters.add(new JacksonJsonHttpMessageConverter());
 
-		AllEncompassingFormHttpMessageConverter converter = new AllEncompassingFormHttpMessageConverter();
-		converter.setPartConverters(converters);
+		MultipartHttpMessageConverter converter = new MultipartHttpMessageConverter(converters);
 
 		restTemplate = new RestTemplate(new HttpComponentsClientHttpRequestFactory());
 		restTemplate.setMessageConverters(Collections.singletonList(converter));

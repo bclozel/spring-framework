@@ -168,6 +168,7 @@ public class MultipartHttpMessageConverter implements SmartHttpMessageConverter<
 
 		this.partConverters = new ArrayList<>();
 		converters.forEach(this.partConverters::add);
+		applyDefaultCharset();
 	}
 
 	/**

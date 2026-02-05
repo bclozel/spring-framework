@@ -33,9 +33,9 @@ import org.springframework.http.converter.feed.AtomFeedHttpMessageConverter;
 import org.springframework.http.converter.feed.RssChannelHttpMessageConverter;
 import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.http.converter.json.KotlinSerializationJsonHttpMessageConverter;
+import org.springframework.http.converter.multipart.MultipartHttpMessageConverter;
 import org.springframework.http.converter.protobuf.KotlinSerializationProtobufHttpMessageConverter;
 import org.springframework.http.converter.smile.JacksonSmileHttpMessageConverter;
-import org.springframework.http.converter.support.AllEncompassingFormHttpMessageConverter;
 import org.springframework.http.converter.xml.JacksonXmlHttpMessageConverter;
 import org.springframework.http.converter.yaml.JacksonYamlHttpMessageConverter;
 
@@ -66,6 +66,13 @@ class DefaultHttpMessageConvertersTests {
 		assertThatIllegalArgumentException()
 				.isThrownBy(() -> HttpMessageConverters.forClient().withStringConverter(new CustomHttpMessageConverter()).build())
 				.withMessage("converter should support 'text/plain'");
+	}
+
+	@Test
+	void failsWhenFormConverterDoesNotSupportMediaType() {
+		assertThatIllegalArgumentException()
+				.isThrownBy(() -> HttpMessageConverters.forClient().withFormConverter(new CustomHttpMessageConverter()).build())
+				.withMessage("converter should support 'application/x-www-form-urlencoded'");
 	}
 
 	@Test
@@ -116,8 +123,9 @@ class DefaultHttpMessageConvertersTests {
 		void defaultConverters() {
 			var converters = HttpMessageConverters.forClient().registerDefaults().build();
 			assertThat(converters).hasExactlyElementsOfTypes(ByteArrayHttpMessageConverter.class,
-					StringHttpMessageConverter.class, ResourceHttpMessageConverter.class,
-					AllEncompassingFormHttpMessageConverter.class, KotlinSerializationJsonHttpMessageConverter.class,
+					StringHttpMessageConverter.class, FormHttpMessageConverter.class,
+					ResourceHttpMessageConverter.class, MultipartHttpMessageConverter.class,
+					KotlinSerializationJsonHttpMessageConverter.class,
 					JacksonJsonHttpMessageConverter.class, JacksonSmileHttpMessageConverter.class,
 					KotlinSerializationCborHttpMessageConverter.class, JacksonCborHttpMessageConverter.class,
 					JacksonYamlHttpMessageConverter.class, JacksonXmlHttpMessageConverter.class,
@@ -128,7 +136,7 @@ class DefaultHttpMessageConvertersTests {
 		@Test
 		void multipartConverterContainsOtherConverters() {
 			var converters = HttpMessageConverters.forClient().registerDefaults().build();
-			var multipartConverter = findMessageConverter(AllEncompassingFormHttpMessageConverter.class, converters);
+			var multipartConverter = findMessageConverter(MultipartHttpMessageConverter.class, converters);
 
 			assertThat(multipartConverter.getPartConverters()).hasExactlyElementsOfTypes(
 					ByteArrayHttpMessageConverter.class, StringHttpMessageConverter.class,
@@ -144,7 +152,7 @@ class DefaultHttpMessageConvertersTests {
 		void registerCustomMessageConverter() {
 			var converters = HttpMessageConverters.forClient()
 					.addCustomConverter(new CustomHttpMessageConverter()).build();
-			assertThat(converters).hasExactlyElementsOfTypes(CustomHttpMessageConverter.class, AllEncompassingFormHttpMessageConverter.class);
+			assertThat(converters).hasExactlyElementsOfTypes(CustomHttpMessageConverter.class, MultipartHttpMessageConverter.class);
 		}
 
 		@Test
@@ -153,8 +161,9 @@ class DefaultHttpMessageConvertersTests {
 					.addCustomConverter(new CustomHttpMessageConverter()).build();
 			assertThat(converters).hasExactlyElementsOfTypes(
 					CustomHttpMessageConverter.class, ByteArrayHttpMessageConverter.class,
-					StringHttpMessageConverter.class, ResourceHttpMessageConverter.class,
-					AllEncompassingFormHttpMessageConverter.class, KotlinSerializationJsonHttpMessageConverter.class,
+					StringHttpMessageConverter.class, FormHttpMessageConverter.class,
+					ResourceHttpMessageConverter.class, MultipartHttpMessageConverter.class,
+					KotlinSerializationJsonHttpMessageConverter.class,
 					JacksonJsonHttpMessageConverter.class, JacksonSmileHttpMessageConverter.class,
 					KotlinSerializationCborHttpMessageConverter.class, JacksonCborHttpMessageConverter.class,
 					JacksonYamlHttpMessageConverter.class, JacksonXmlHttpMessageConverter.class,
@@ -166,7 +175,7 @@ class DefaultHttpMessageConvertersTests {
 		void registerCustomConverterInMultipartConverter() {
 			var converters = HttpMessageConverters.forClient().registerDefaults()
 					.addCustomConverter(new CustomHttpMessageConverter()).build();
-			var multipartConverter = findMessageConverter(AllEncompassingFormHttpMessageConverter.class, converters);
+			var multipartConverter = findMessageConverter(MultipartHttpMessageConverter.class, converters);
 			assertThat(multipartConverter.getPartConverters()).hasAtLeastOneElementOfType(CustomHttpMessageConverter.class);
 		}
 
@@ -233,8 +242,9 @@ class DefaultHttpMessageConvertersTests {
 			var converters = HttpMessageConverters.forServer().registerDefaults().build();
 			assertThat(converters).hasExactlyElementsOfTypes(
 					ByteArrayHttpMessageConverter.class, StringHttpMessageConverter.class,
-					ResourceHttpMessageConverter.class, ResourceRegionHttpMessageConverter.class,
-					AllEncompassingFormHttpMessageConverter.class, KotlinSerializationJsonHttpMessageConverter.class,
+					FormHttpMessageConverter.class, ResourceHttpMessageConverter.class,
+					ResourceRegionHttpMessageConverter.class, MultipartHttpMessageConverter.class,
+					KotlinSerializationJsonHttpMessageConverter.class,
 					JacksonJsonHttpMessageConverter.class, JacksonSmileHttpMessageConverter.class,
 					KotlinSerializationCborHttpMessageConverter.class, JacksonCborHttpMessageConverter.class,
 					JacksonYamlHttpMessageConverter.class, JacksonXmlHttpMessageConverter.class,
@@ -245,7 +255,7 @@ class DefaultHttpMessageConvertersTests {
 		@Test
 		void multipartConverterContainsOtherConverters() {
 			var converters = HttpMessageConverters.forServer().registerDefaults().build();
-			var multipartConverter = findMessageConverter(AllEncompassingFormHttpMessageConverter.class, converters);
+			var multipartConverter = findMessageConverter(MultipartHttpMessageConverter.class, converters);
 
 			assertThat(multipartConverter.getPartConverters()).hasExactlyElementsOfTypes(
 					ByteArrayHttpMessageConverter.class, StringHttpMessageConverter.class,
@@ -261,7 +271,7 @@ class DefaultHttpMessageConvertersTests {
 		void registerCustomMessageConverter() {
 			var converters = HttpMessageConverters.forServer()
 					.addCustomConverter(new CustomHttpMessageConverter()).build();
-			assertThat(converters).hasExactlyElementsOfTypes(CustomHttpMessageConverter.class, AllEncompassingFormHttpMessageConverter.class);
+			assertThat(converters).hasExactlyElementsOfTypes(CustomHttpMessageConverter.class, MultipartHttpMessageConverter.class);
 		}
 
 		@Test
@@ -271,8 +281,9 @@ class DefaultHttpMessageConvertersTests {
 			assertThat(converters).hasExactlyElementsOfTypes(
 					CustomHttpMessageConverter.class,
 					ByteArrayHttpMessageConverter.class, StringHttpMessageConverter.class,
-					ResourceHttpMessageConverter.class, ResourceRegionHttpMessageConverter.class,
-					AllEncompassingFormHttpMessageConverter.class, KotlinSerializationJsonHttpMessageConverter.class,
+					FormHttpMessageConverter.class, ResourceHttpMessageConverter.class,
+					ResourceRegionHttpMessageConverter.class, MultipartHttpMessageConverter.class,
+					KotlinSerializationJsonHttpMessageConverter.class,
 					JacksonJsonHttpMessageConverter.class, JacksonSmileHttpMessageConverter.class,
 					KotlinSerializationCborHttpMessageConverter.class, JacksonCborHttpMessageConverter.class,
 					JacksonYamlHttpMessageConverter.class, JacksonXmlHttpMessageConverter.class,
@@ -284,7 +295,7 @@ class DefaultHttpMessageConvertersTests {
 		void registerCustomConverterInMultipartConverter() {
 			var converters = HttpMessageConverters.forServer().registerDefaults()
 					.addCustomConverter(new CustomHttpMessageConverter()).build();
-			var multipartConverter = findMessageConverter(AllEncompassingFormHttpMessageConverter.class, converters);
+			var multipartConverter = findMessageConverter(MultipartHttpMessageConverter.class, converters);
 			assertThat(multipartConverter.getPartConverters()).hasAtLeastOneElementOfType(CustomHttpMessageConverter.class);
 		}
 

@@ -25,9 +25,10 @@ import org.junit.jupiter.api.Test;
 
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.MediaType;
-import org.springframework.http.converter.FormHttpMessageConverter;
+import org.springframework.http.converter.multipart.MultipartHttpMessageConverter;
 import org.springframework.mock.http.client.MockClientHttpRequest;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.util.LinkedMultiValueMap;
@@ -55,6 +56,7 @@ public class MultipartRequestMatchersTests {
 
 	@BeforeEach
 	public void setup() {
+		this.request.setMethod(HttpMethod.POST);
 		this.request.getHeaders().setContentType(MediaType.MULTIPART_FORM_DATA);
 	}
 
@@ -188,7 +190,7 @@ public class MultipartRequestMatchersTests {
 	}
 
 	private void writeForm() throws IOException {
-		new FormHttpMessageConverter().write(this.input, MediaType.MULTIPART_FORM_DATA,
+		new MultipartHttpMessageConverter().write(this.input, MediaType.MULTIPART_FORM_DATA,
 				new HttpOutputMessage() {
 					@Override
 					public OutputStream getBody() throws IOException {

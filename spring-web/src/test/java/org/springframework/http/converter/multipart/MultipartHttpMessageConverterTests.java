@@ -44,6 +44,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.StreamingHttpOutputMessage;
+import org.springframework.http.converter.AbstractHttpMessageConverter;
 import org.springframework.http.converter.ByteArrayHttpMessageConverter;
 import org.springframework.http.converter.HttpMessageConversionException;
 import org.springframework.http.converter.ResourceHttpMessageConverter;
@@ -121,6 +122,25 @@ class MultipartHttpMessageConverterTests {
 
 		this.converter.addSupportedMediaTypes(MULTIPART_RELATED);
 		assertCanWrite(MULTIPART_RELATED);
+	}
+
+	@Test
+	void applyDefaultCharsetToPartConverters() {
+		this.converter.getPartConverters().forEach(converter -> {
+			if (converter instanceof AbstractHttpMessageConverter<?> abstractConverter) {
+				assertThat(abstractConverter.getDefaultCharset()).isIn(null, StandardCharsets.UTF_8);
+			}
+		});
+	}
+
+	@Test
+	void customCharsetAppliedToPartConverters() {
+		this.converter.setCharset(StandardCharsets.UTF_16);
+		this.converter.getPartConverters().forEach(converter -> {
+			if (converter instanceof AbstractHttpMessageConverter<?> abstractConverter) {
+				assertThat(abstractConverter.getDefaultCharset()).isIn(null, StandardCharsets.UTF_16);
+			}
+		});
 	}
 
 

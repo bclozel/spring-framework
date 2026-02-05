@@ -34,10 +34,10 @@ import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.http.converter.json.JsonbHttpMessageConverter;
 import org.springframework.http.converter.json.KotlinSerializationJsonHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.http.converter.multipart.MultipartHttpMessageConverter;
 import org.springframework.http.converter.protobuf.KotlinSerializationProtobufHttpMessageConverter;
 import org.springframework.http.converter.smile.JacksonSmileHttpMessageConverter;
 import org.springframework.http.converter.smile.MappingJackson2SmileHttpMessageConverter;
-import org.springframework.http.converter.support.AllEncompassingFormHttpMessageConverter;
 import org.springframework.http.converter.xml.JacksonXmlHttpMessageConverter;
 import org.springframework.http.converter.xml.Jaxb2RootElementHttpMessageConverter;
 import org.springframework.http.converter.xml.MappingJackson2XmlHttpMessageConverter;
@@ -120,6 +120,8 @@ class DefaultHttpMessageConverters implements HttpMessageConverters {
 
 		@Nullable HttpMessageConverter<?> resourceRegionConverter;
 
+		@Nullable HttpMessageConverter<?> formConverter;
+
 		@Nullable Consumer<HttpMessageConverter<?>> configurer;
 
 		@Nullable Consumer<List<HttpMessageConverter<?>>> convertersListConfigurer;
@@ -173,6 +175,11 @@ class DefaultHttpMessageConverters implements HttpMessageConverters {
 		void setStringConverter(HttpMessageConverter<?> stringConverter) {
 			checkConverterSupports(stringConverter, MediaType.TEXT_PLAIN);
 			this.stringConverter = stringConverter;
+		}
+
+		public void setFormConverter(HttpMessageConverter<?> formConverter) {
+			checkConverterSupports(formConverter, MediaType.APPLICATION_FORM_URLENCODED);
+			this.formConverter = formConverter;
 		}
 
 		void setKotlinSerializationJsonConverter(HttpMessageConverter<?> kotlinJsonConverter) {
@@ -241,6 +248,9 @@ class DefaultHttpMessageConverters implements HttpMessageConverters {
 			if (this.stringConverter != null) {
 				converters.add(this.stringConverter);
 			}
+			if (this.formConverter != null) {
+				converters.add(this.formConverter);
+			}
 			return converters;
 		}
 
@@ -288,6 +298,9 @@ class DefaultHttpMessageConverters implements HttpMessageConverters {
 
 			if (this.stringConverter == null) {
 				this.stringConverter = new StringHttpMessageConverter();
+			}
+			if (this.formConverter == null) {
+				this.formConverter = new FormHttpMessageConverter();
 			}
 			if (this.kotlinJsonConverter == null) {
 				if (KOTLIN_SERIALIZATION_JSON_PRESENT) {
@@ -396,6 +409,12 @@ class DefaultHttpMessageConverters implements HttpMessageConverters {
 		}
 
 		@Override
+		public ClientBuilder withFormConverter(HttpMessageConverter<?> formMessageConverter) {
+			setFormConverter(formMessageConverter);
+			return this;
+		}
+
+		@Override
 		public ClientBuilder withKotlinSerializationJsonConverter(HttpMessageConverter<?> kotlinSerializationJsonConverter) {
 			setKotlinSerializationJsonConverter(kotlinSerializationJsonConverter);
 			return this;
@@ -464,14 +483,17 @@ class DefaultHttpMessageConverters implements HttpMessageConverters {
 			List<HttpMessageConverter<?>> partConverters = new ArrayList<>(this.getCustomConverters());
 			List<HttpMessageConverter<?>> allConverters = new ArrayList<>(this.getCustomConverters());
 			if (this.registerDefaults) {
-				partConverters.addAll(this.getCoreConverters());
 				allConverters.addAll(this.getBaseConverters());
 				if (this.resourceConverter != null) {
 					allConverters.add(this.resourceConverter);
 				}
+				// use separate instances of base converters for multipart
+				partConverters.addAll(List.of(new ByteArrayHttpMessageConverter(),
+						new StringHttpMessageConverter(), new ResourceHttpMessageConverter()));
+				partConverters.addAll(this.getCoreConverters());
 			}
 			if (!partConverters.isEmpty() || !allConverters.isEmpty()) {
-				allConverters.add(new AllEncompassingFormHttpMessageConverter(partConverters));
+				allConverters.add(new MultipartHttpMessageConverter(partConverters));
 			}
 			if (this.registerDefaults) {
 				allConverters.addAll(this.getCoreConverters());
@@ -498,6 +520,12 @@ class DefaultHttpMessageConverters implements HttpMessageConverters {
 		@Override
 		public ServerBuilder withStringConverter(HttpMessageConverter<?> stringConverter) {
 			setStringConverter(stringConverter);
+			return this;
+		}
+
+		@Override
+		public ServerBuilder withFormConverter(HttpMessageConverter<?> formMessageConverter) {
+			setFormConverter(formMessageConverter);
 			return this;
 		}
 
@@ -571,7 +599,6 @@ class DefaultHttpMessageConverters implements HttpMessageConverters {
 			List<HttpMessageConverter<?>> partConverters = new ArrayList<>(this.getCustomConverters());
 			List<HttpMessageConverter<?>> allConverters = new ArrayList<>(this.getCustomConverters());
 			if (this.registerDefaults) {
-				partConverters.addAll(this.getCoreConverters());
 				allConverters.addAll(this.getBaseConverters());
 				if (this.resourceConverter != null) {
 					allConverters.add(this.resourceConverter);
@@ -579,9 +606,13 @@ class DefaultHttpMessageConverters implements HttpMessageConverters {
 				if (this.resourceRegionConverter != null) {
 					allConverters.add(this.resourceRegionConverter);
 				}
+				// use separate instances of base converters for multipart
+				partConverters.addAll(List.of(new ByteArrayHttpMessageConverter(),
+						new StringHttpMessageConverter(), new ResourceHttpMessageConverter()));
+				partConverters.addAll(this.getCoreConverters());
 			}
 			if (!partConverters.isEmpty() || !allConverters.isEmpty()) {
-				allConverters.add(new AllEncompassingFormHttpMessageConverter(partConverters));
+				allConverters.add(new MultipartHttpMessageConverter(partConverters));
 			}
 			if (this.registerDefaults) {
 				allConverters.addAll(this.getCoreConverters());
